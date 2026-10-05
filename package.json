@@ -1,21 +1,22 @@
 {
-  "name": "@constructor-io/constructorio-ui-agent-overview",
+  "name": "@constructor-io/constructorio-ui-agent-components",
   "version": "0.0.0",
-  "description": "Constructor.io Agent Overview UI library",
+  "description": "Constructor.io agentic UI component library",
   "author": "Constructor.io Corporation",
   "license": "MIT",
-  "homepage": "https://github.com/Constructor-io/constructorio-ui-agent-overview#readme",
+  "homepage": "https://github.com/Constructor-io/constructorio-ui-agent-components#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Constructor-io/constructorio-ui-agent-overview.git"
+    "url": "git+https://github.com/Constructor-io/constructorio-ui-agent-components.git"
   },
   "bugs": {
-    "url": "https://github.com/Constructor-io/constructorio-ui-agent-overview/issues"
+    "url": "https://github.com/Constructor-io/constructorio-ui-agent-components/issues"
   },
   "keywords": [
     "constructor.io",
     "ai",
     "agent",
+    "agentic",
     "product recommendations",
     "ecommerce",
     "react",
@@ -32,9 +33,9 @@
       "require": "./dist/index.cjs.js"
     },
     "./styles.css": "./dist/styles.css",
-    "./constructorio-ui-agent-overview-standalone": {
-      "import": "./dist/standalone/constructorio-ui-agent-overview.standalone.js",
-      "require": "./dist/standalone/constructorio-ui-agent-overview.standalone.js"
+    "./constructorio-ui-agent-components-standalone": {
+      "import": "./dist/standalone/constructorio-ui-agent-components.standalone.js",
+      "require": "./dist/standalone/constructorio-ui-agent-components.standalone.js"
     }
   },
   "files": [

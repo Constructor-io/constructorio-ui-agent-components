@@ -20,7 +20,7 @@ export default defineConfig({
     lib: {
       entry: path.resolve(dirname, 'src/standalone.tsx'),
       name: 'CioAgentOverview',
-      fileName: () => 'constructorio-ui-agent-overview.standalone.js',
+      fileName: () => 'constructorio-ui-agent-components.standalone.js',
       formats: ['umd'],
     },
     rollupOptions: {

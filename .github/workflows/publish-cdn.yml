@@ -51,7 +51,7 @@ jobs:
       - name: Upload to S3
         run: |
           mkdir -p s3_dist
-          cp dist/standalone/constructorio-ui-agent-overview.standalone.js s3_dist/${{ steps.version.outputs.without_prefix }}.js
+          cp dist/standalone/constructorio-ui-agent-components.standalone.js s3_dist/${{ steps.version.outputs.without_prefix }}.js
           aws s3 sync s3_dist s3://constructor-frontend-prod/ui/agent-overview \
             --cache-control 'public, max-age=1800' \
             --acl 'public-read'
@@ -60,6 +60,6 @@ jobs:
         uses: ravsamhq/notify-slack-action@bca2d7f5660b833a27bda4f6b8bef389ebfefd25 # v2.3.0
         with:
           status: ${{ job.status }}
-          notification_title: 'New constructorio-ui-agent-overview release published to CDN at version ${{ inputs.version }}'
+          notification_title: 'New constructorio-ui-agent-components release published to CDN at version ${{ inputs.version }}'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

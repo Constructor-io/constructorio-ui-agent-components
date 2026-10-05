@@ -1,9 +1,9 @@
-# Constructor.io AI Agent Overview UI Library
+# Constructor.io Agent Components UI Library
 
-[![npm](https://img.shields.io/npm/v/@constructor-io/constructorio-ui-agent-overview)](https://www.npmjs.com/package/@constructor-io/constructorio-ui-agent-overview)
-[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Constructor-io/constructorio-ui-agent-overview/blob/master/LICENSE)
+[![npm](https://img.shields.io/npm/v/@constructor-io/constructorio-ui-agent-components)](https://www.npmjs.com/package/@constructor-io/constructorio-ui-agent-components)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Constructor-io/constructorio-ui-agent-components/blob/master/LICENSE)
 
-A UI library that provides React components to stream and render AI-generated product recommendation sections for [Constructor.io's Agent Overview](https://constructor.io/). TypeScript support is available.
+A UI library of React components for Constructor.io's agentic experiences. It currently ships [Agent Overview](https://constructor.io/), which streams and renders AI-generated product recommendation sections. TypeScript support is available.
 
 ## Table of Contents
 
@@ -23,12 +23,12 @@ A UI library that provides React components to stream and render AI-generated pr
 
 [Constructor.io's Agent Overview](https://constructor.io/) streams AI-generated product recommendation sections in real time. Given a user intent (e.g. "I want to buy casual shoes"), it presents category suggestions followed by detailed product results. This UI library simplifies the integration process by providing React components and a framework-agnostic standalone bundle that handle the streaming, parsing, and rendering logic.
 
-[Our Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-overview) are the best place to explore the behavior and the available configuration options for this UI library.
+[Our Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-components) are the best place to explore the behavior and the available configuration options for this UI library.
 
 ## Installation
 
 ```bash
-npm i @constructor-io/constructorio-ui-agent-overview
+npm i @constructor-io/constructorio-ui-agent-components
 ```
 
 ### Prerequisites
@@ -44,7 +44,7 @@ npm i @constructor-io/constructorio-ui-agent-overview
 This is a framework-agnostic method that can be used in any JavaScript project. The `CioAgentOverview` function provides a simple interface to inject the Agent Overview component into the provided `selector`.
 
 ```js
-import CioAgentOverview from '@constructor-io/constructorio-ui-agent-overview/constructorio-ui-agent-overview-standalone';
+import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/constructorio-ui-agent-components-standalone';
 
 CioAgentOverview.init({
   selector: '#agent-overview',
@@ -63,8 +63,8 @@ CioAgentOverview.init({
 For full control over rendering, use the `useAgentOverview` hook directly.
 
 ```jsx
-import { useAgentOverview, RecommendationSection } from '@constructor-io/constructorio-ui-agent-overview';
-import '@constructor-io/constructorio-ui-agent-overview/styles.css';
+import { useAgentOverview, RecommendationSection } from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
 function MyAgentOverview() {
   const {
@@ -137,7 +137,7 @@ By default, importing React components from this library does not pull any CSS i
 If you wish to use some starter styles from this library, add an import statement similar to the example below:
 
 ```js
-import '@constructor-io/constructorio-ui-agent-overview/styles.css';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
 ```
 
 - These starter styles can be used as a foundation to build on top of, or just as a reference for you to replace completely.
@@ -164,7 +164,7 @@ The component supports extensive theming via the `theme` prop, which maps to CSS
 />
 ```
 
-See our [Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-overview) for the full list of available theme properties.
+See our [Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-components) for the full list of available theme properties.
 
 ### Translations
 
@@ -204,7 +204,7 @@ For ECMAScript Modules (esm) build, the JavaScript version is ESNext which might
 
 To solve this you can import the CommonJS (cjs) build which supports ES6 (ES2015) syntax:
 
-`import CioAgentOverview from '@constructor-io/constructorio-ui-agent-overview'`
+`import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components'`
 
 (The default import resolves to the CJS build in environments that support `require`.)
 
@@ -212,7 +212,7 @@ To solve this you can import the CommonJS (cjs) build which supports ES6 (ES2015
 
 There is a known issue with ESLint where it fails to resolve the paths exposed in the `exports` statement of NPM packages. If you are receiving the following error, you can safely disable ESLint using `// eslint-disable-line` for that line.
 
-`Unable to resolve path to module '@constructor-io/constructorio-ui-agent-overview/styles.css'`
+`Unable to resolve path to module '@constructor-io/constructorio-ui-agent-components/styles.css'`
 
 Relevant open issues: [Issue 1868](https://github.com/import-js/eslint-plugin-import/issues/1868), [Issue 1810](https://github.com/import-js/eslint-plugin-import/issues/1810)
 
@@ -238,7 +238,7 @@ npm run build-storybook   # Generate Storybook static bundle for deploy with Git
 
 ## Publishing New Versions
 
-Dispatch the [Publish](https://github.com/Constructor-io/constructorio-ui-agent-overview/actions/workflows/publish.yml) workflow in GitHub Actions. You're required to provide two arguments:
+Dispatch the [Publish](https://github.com/Constructor-io/constructorio-ui-agent-components/actions/workflows/publish.yml) workflow in GitHub Actions. You're required to provide two arguments:
 
 - **Version Strategy**: `major`, `minor`, or `patch`.
 - **Title**: A title for the release.
@@ -258,13 +258,13 @@ The library version is tracked by releases and git tags. We intentionally keep t
 
 ## New Storybook Version
 
-Dispatch the [Deploy Storybook](https://github.com/Constructor-io/constructorio-ui-agent-overview/actions/workflows/deploy-storybook.yml) workflow in GitHub Actions.
+Dispatch the [Deploy Storybook](https://github.com/Constructor-io/constructorio-ui-agent-components/actions/workflows/deploy-storybook.yml) workflow in GitHub Actions.
 
 #### Note: This is already done automatically when publishing a new version.
 
 ## Supporting Docs
 
-- [Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-overview)
+- [Storybook Docs](https://constructor-io.github.io/constructorio-ui-agent-components)
 - [Constructor.io API Documentation](https://docs.constructor.io/)
 
 ## Related Libraries

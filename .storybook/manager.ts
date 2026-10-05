@@ -4,7 +4,7 @@ import { create } from 'storybook/theming';
 const theme = create({
   base: 'light',
   brandTitle: 'Constructor',
-  brandUrl: 'https://github.com/Constructor-io/constructorio-ui-agent-overview',
+  brandUrl: 'https://github.com/Constructor-io/constructorio-ui-agent-components',
   brandImage:
     'https://constructor.com/hubfs/Website%20-%202024/Logos/Logo-black.svg',
   brandTarget: '_blank',

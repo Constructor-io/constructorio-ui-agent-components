@@ -25,7 +25,7 @@ This guide walks you through integrating **CioAgentOverview** into your React ap
     <p>Add the library to your project:</p>
 
 ```bash
-npm install @constructor-io/constructorio-ui-agent-overview
+npm install @constructor-io/constructorio-ui-agent-components
 ```
 
   </li>
@@ -34,8 +34,8 @@ npm install @constructor-io/constructorio-ui-agent-overview
     <p>Import the component with styles and configure the props:</p>
 
 ```tsx
-import CioAgentOverview from '@constructor-io/constructorio-ui-agent-overview';
-import '@constructor-io/constructorio-ui-agent-overview/styles.css';
+import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
 function App() {
   return (
@@ -87,8 +87,8 @@ function App() {
 For full control over the UI, use the hook directly:
 
 ```tsx
-import { useAgentOverview } from '@constructor-io/constructorio-ui-agent-overview';
-import '@constructor-io/constructorio-ui-agent-overview/styles.css';
+import { useAgentOverview } from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
 function CustomAgentUI() {
   const {
@@ -144,7 +144,7 @@ For non-React environments, use the standalone bundle:
 
 ```html
 <div id="cio-agent-overview"></div>
-<script src="path/to/constructorio-ui-agent-overview.standalone.js"></script>
+<script src="path/to/constructorio-ui-agent-components.standalone.js"></script>
 <script>
   CioAgentOverview.init({
     selector: '#cio-agent-overview',
