@@ -1,8 +1,9 @@
-# constructorio-ui-agent-overview
+# constructorio-ui-agent-components
 
-Embeddable React widget: streams AI-generated category suggestions and product
-recommendation sections for a shopping intent. It is published to npm and runs
-inside a customer's site, so it is a guest on a page it does not own.
+Library of embeddable React components for Constructor's agentic experiences.
+Its first component, Agent Overview, streams AI-generated category suggestions
+and product recommendation sections for a shopping intent. It is published to
+npm and runs inside a customer's site, so it is a guest on a page it does not own.
 
 ## Accessibility
 

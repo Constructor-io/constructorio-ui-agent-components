@@ -41,6 +41,6 @@ jobs:
         uses: ravsamhq/notify-slack-action@bca2d7f5660b833a27bda4f6b8bef389ebfefd25 # v2.3.0
         with:
           status: ${{ job.status }}
-          notification_title: 'New constructorio-ui-agent-overview GitHub release created at version ${{ inputs.version }}'
+          notification_title: 'New constructorio-ui-agent-components GitHub release created at version ${{ inputs.version }}'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

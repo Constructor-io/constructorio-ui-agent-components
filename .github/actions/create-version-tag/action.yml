@@ -51,6 +51,6 @@ runs:
       uses: ravsamhq/notify-slack-action@bca2d7f5660b833a27bda4f6b8bef389ebfefd25 # v2.3.0
       with:
         status: ${{ job.status }}
-        notification_title: 'constructorio-ui-agent-overview package version bumped to ${{ steps.bump.outputs.next_version }}'
+        notification_title: 'constructorio-ui-agent-components package version bumped to ${{ steps.bump.outputs.next_version }}'
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
