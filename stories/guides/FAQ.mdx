@@ -1,0 +1,21 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Guides/FAQ" />
+
+# FAQ
+
+## Nothing renders
+
+No request is made until `intent`, `domains.suggestions` and `domains.results` are all set. Pass `apiKey` or `cioJsClient` too.
+
+## It keeps reloading
+
+A new `domains` object restarts the stream, and an inline `domains={{ … }}` is a new object on every render. Define it outside your component, or memoize it. The same goes for `cioJsClient`.
+
+## `Module parse failed: Unexpected token`
+
+Your bundler can't parse the ESNext build. Resolve the package with `require` to get the CommonJS build, which is ES2015.
+
+## ESLint: `Unable to resolve path to module '…/styles.css'`
+
+`eslint-plugin-import` can't resolve package `exports` ([#1868](https://github.com/import-js/eslint-plugin-import/issues/1868), [#1810](https://github.com/import-js/eslint-plugin-import/issues/1810)). Disable the rule for that line with `// eslint-disable-line`.

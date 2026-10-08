@@ -1,0 +1,35 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Components & Utilities/useAgentOverview" />
+
+# useAgentOverview
+
+Fetches and streams the agent's state. Takes [`CioAgentOverview`'s props](?path=/docs/components-utilities-cioagentoverview--docs); only `apiKey`, `cioJsClient`, `intent` and `domains` are used. See [Custom UI](?path=/docs/guides-custom-ui--docs).
+
+```js
+const {
+  phase,
+  categories,
+  categoryDescription,
+  sections,
+  selectCategory,
+  isLoading,
+  error,
+} = useAgentOverview(props);
+```
+
+<Markdown>
+  {`
+| Returns | Type | |
+|---|---|---|
+| \`phase\` | \`'categories' \\| 'products'\` | Starts at \`'categories'\` |
+| \`categories\` | \`ICategory[]\` | \`{ title, imageUrl }\` |
+| \`categoryDescription\` | \`string\` | Shown above the categories |
+| \`sections\` | \`IRecommendationSection[]\` | \`{ title, description, products }\`. Empty until \`phase\` is \`'products'\` |
+| \`selectCategory\` | \`(category) => void\` | Moves to \`'products'\`. The sections don't depend on which category |
+| \`isLoading\` | \`boolean\` | While categories load, then while products finish streaming |
+| \`error\` | \`string \\| null\` | The error message |
+`}
+</Markdown>
+
+Products stream while the shopper picks a category, so they usually show at once. `viewMoreUrl` is never set on a section by the hook; add it yourself.

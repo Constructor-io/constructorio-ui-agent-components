@@ -1,0 +1,33 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Components & Utilities/JavaScript Bundle" />
+
+# JavaScript Bundle
+
+`CioAgentOverview` for pages without React. It includes React and the styles.
+
+```js
+import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/constructorio-ui-agent-components-standalone';
+
+CioAgentOverview.init({
+  selector: '#agent-overview',
+  apiKey: 'YOUR_API_KEY',
+  intent,
+  domains,
+});
+CioAgentOverview.update('#agent-overview', {
+  intent: 'Show me summer dresses',
+});
+CioAgentOverview.destroy('#agent-overview');
+```
+
+<Markdown>
+  {`
+| | |
+|---|---|
+| \`init(options)\` | Mounts into \`options.selector\`, replacing any instance there. \`options\` are [\`CioAgentOverview\`'s props](?path=/docs/components-utilities-cioagentoverview--docs), plus \`selector\` and \`includeCSS\` (default \`true\`). Returns the element, or \`undefined\` if it wasn't found |
+| \`update(selector, props)\` | Merges \`props\` into the instance's props and re-renders |
+| \`destroy(selector?)\` | Unmounts one instance, or all of them |
+| \`VERSION\` | The library version |
+`}
+</Markdown>

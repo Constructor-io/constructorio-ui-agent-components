@@ -4,56 +4,53 @@ import Repo from './assets/repo.svg';
 import Plugin from './assets/plugin.svg';
 import './assets/storybook-styles.css';
 
-<Meta title='General/Introduction' />
+<Meta title="Introduction" />
 
-# Welcome to Constructor's Agent Components UI
+# Constructor Agent Components UI
 
-A UI library of components for Constructor's agentic experiences. Its first component, Agent Overview, streams **AI-generated product recommendations** in real time. Given a user intent, it presents category suggestions followed by detailed product results — handling both tracking and data retrieval so you can focus on your site experience.
+React components for Constructor's agentic experiences. **Agent Overview** streams AI-generated category suggestions for a shopping intent, then product recommendation sections.
 
-<h2 className='subheading subheading--compact'>Getting Started</h2>
+```bash
+npm install @constructor-io/constructorio-ui-agent-components
+```
 
-<div className='link-list link-list--compact'>
-  <a className='link-item' href='./?path=/docs/general-integration-guide--docs'>
-    <img src={Flow} alt='' aria-hidden='true' />
+## How these docs are organised
+
+- **Guides** show how to do something. Start with the [Integration Guide](./?path=/docs/guides-integration-guide--docs).
+- **Components & Utilities** is the reference for everything the package exports.
+
+<div className="link-list">
+  <a className="link-item" href="./?path=/docs/guides-integration-guide--docs">
+    <img src={Flow} alt="" />
     <span>
       <strong>Integration Guide</strong>
-      Step-by-step setup: installation, rendering, callbacks, and theming
+      Step by step, start here
     </span>
   </a>
-  <a className='link-item' href='./?path=/docs/general-customization--docs'>
-    <img src={Plugin} alt='' aria-hidden='true' />
+  <a className="link-item" href="./?path=/docs/guides-customization--docs">
+    <img src={Plugin} alt="" />
     <span>
       <strong>Customization</strong>
-      Theming, CSS custom properties, and component-level style overrides
+      Styles, theme, translations
     </span>
   </a>
-</div>
-
-<h2 className='subheading subheading--compact'>Components</h2>
-
-<div className='link-list link-list--compact'>
-  <a className='link-item' href='./?path=/docs/agentoverview-cioagentoverview--docs'>
-    <img src={Repo} alt='' aria-hidden='true' />
+  <a className="link-item" href="./?path=/docs/guides-custom-ui--docs">
+    <img src={Plugin} alt="" />
     <span>
-      <strong>CioAgentOverview</strong>
-      An all-in-one component that renders category suggestions, product recommendations, and "View more" links
+      <strong>Custom UI</strong>
+      Your own rendering with the hook
     </span>
   </a>
-</div>
-
-<h2 className='subheading subheading--compact'>Hooks</h2>
-
-<div className='link-list link-list--compact'>
-  <a className='link-item' href='./?path=/docs/agentoverview-useagentoverview-hooks--docs'>
-    <img src={Plugin} alt='' aria-hidden='true' />
+  <a
+    className="link-item"
+    href="./?path=/docs/components-utilities-cioagentoverview--docs"
+  >
+    <img src={Repo} alt="" />
     <span>
-      <strong>useAgentOverview</strong>
-      A headless hook that returns agent stream state — categories, products, loading, and error — so you can build your own UI
+      <strong>Components & Utilities</strong>
+      Every prop and export
     </span>
   </a>
 </div>
 
-<div className='badge-wrapper tip-wrapper'>
-  <span className='badge tip'>Tip</span> Having trouble with a unique use case? Contact your friendly
-  Integration Engineers for support!
-</div>
+Stuck on a use case? Contact your Constructor Integration Engineer.
