@@ -6,7 +6,18 @@ const preview: Preview = {
   parameters: {
     options: {
       storySort: {
-        order: ['General', ['Introduction'], 'AgentOverview'],
+        order: [
+          'Introduction',
+          'Guides',
+          ['Integration Guide', 'Callbacks', 'Customization', 'Custom UI', 'FAQ'],
+          'Components & Utilities',
+          [
+            'CioAgentOverview',
+            'useAgentOverview',
+            'Section Components',
+            'JavaScript Bundle',
+          ],
+        ],
       },
     },
     controls: {

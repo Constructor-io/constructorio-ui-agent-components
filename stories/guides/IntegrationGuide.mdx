@@ -1,0 +1,59 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Guides/Integration Guide" />
+
+# Integration Guide
+
+1. **Install**
+
+   ```bash
+   npm install @constructor-io/constructorio-ui-agent-components
+   ```
+
+   Needs React 16.12 or later.
+
+2. **Render it** with the shopper's intent, usually their search query.
+
+   ```jsx
+   import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
+   import '@constructor-io/constructorio-ui-agent-components/styles.css';
+
+   const domains = {
+     suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
+     results: 'YOUR_RESULTS_DOMAIN',
+   };
+
+   <CioAgentOverview apiKey="YOUR_API_KEY" intent={query} domains={domains} />;
+   ```
+
+   Ask your Integration Engineer for the domains. Nothing is requested until `intent` and both domains are set. A new `intent` or `domains` object starts over, so define `domains` outside your component, or memoize it.
+
+3. **Link the sections.** Without `getViewMoreUrl`, sections have no "View more" link. See [Callbacks](?path=/docs/guides-callbacks--docs).
+
+   ```jsx
+   callbacks={{ getViewMoreUrl: (section) => `/search?q=${encodeURIComponent(section.title)}` }}
+   ```
+
+4. **Style it.** See [Customization](?path=/docs/guides-customization--docs).
+
+5. **Need your own markup?** See [Custom UI](?path=/docs/guides-custom-ui--docs).
+
+## Without React
+
+The JavaScript bundle includes React and the styles, and mounts the component into an element:
+
+```js
+import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/constructorio-ui-agent-components-standalone';
+
+CioAgentOverview.init({
+  selector: '#agent-overview',
+  apiKey: 'YOUR_API_KEY',
+  intent: 'I want to buy shoes',
+  domains: {
+    suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
+    results: 'YOUR_RESULTS_DOMAIN',
+  },
+});
+```
+
+It takes the same props. See [JavaScript Bundle](?path=/docs/components-utilities-javascript-bundle--docs) for `update` and `destroy`.

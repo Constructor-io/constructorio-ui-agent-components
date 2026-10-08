@@ -5,6 +5,11 @@ Its first component, Agent Overview, streams AI-generated category suggestions
 and product recommendation sections for a shopping intent. It is published to
 npm and runs inside a customer's site, so it is a guest on a page it does not own.
 
+## Documentation
+
+**Read `.claude/docs.md` before adding or changing any MDX, story, or README
+content.** It says where each kind of content lives and what ships publicly.
+
 ## Accessibility
 
 **Read `.claude/a11y.md` before reviewing or writing any JSX/TSX or CSS**, whether
@@ -40,7 +45,7 @@ color still needs a non-visual equivalent.
   back to the default string instead. Add every
   user-facing string, including accessible names and live-region text, to
   `defaultTranslations` (`src/utils/translate.ts`), the `Translations` type
-  (`src/types/index.ts`), the README and the `translations` argType.
+  (`src/types/index.ts`) and the table in the Customization guide.
 - **Only `src/index.ts` is public.** Components and hooks outside it can change
   shape freely.
 

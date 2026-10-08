@@ -1,0 +1,36 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Guides/Callbacks" />
+
+# Callbacks
+
+```jsx
+<CioAgentOverview
+  apiKey="YOUR_API_KEY"
+  intent={query}
+  domains={domains}
+  callbacks={{
+    onCategoryClick: (category) =>
+      myAnalytics.track('category_click', { title: category.title }),
+    onProductClick: (event, product, section) =>
+      myAnalytics.track('product_click', {
+        name: product.itemName,
+        section: section.title,
+      }),
+    getProductUrl: (product) => `${product.url}?ref=agent-overview`,
+    getViewMoreUrl: (section) =>
+      `/search?q=${encodeURIComponent(section.title)}`,
+  }}
+/>
+```
+
+<Markdown>
+  {`
+| Callback | Called |
+|---|---|
+| \`onCategoryClick(category)\` | When a category card is clicked, before the products show. Not called for "View suggestions" |
+| \`onProductClick(event, product, section)\` | When a product card is clicked. The card is a link: call \`event.preventDefault()\` to navigate yourself |
+| \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
+| \`getViewMoreUrl(section)\` | For each section. Its "View more" link opens in a new tab; without this callback there is no link |
+`}
+</Markdown>

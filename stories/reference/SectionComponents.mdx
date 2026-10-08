@@ -1,0 +1,25 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Components & Utilities/Section Components" />
+
+# Section Components
+
+The parts `CioAgentOverview` renders products with, for use with [useAgentOverview](?path=/docs/components-utilities-useagentoverview--docs). Render them inside a `cio-agent-overview-root` element to get the styles.
+
+```jsx
+import {
+  RecommendationSection,
+  ProductCarousel,
+  ProductCard,
+} from '@constructor-io/constructorio-ui-agent-components';
+```
+
+<Markdown>
+  {`
+| Component | Props |
+|---|---|
+| \`RecommendationSection\` | \`section\`, \`translations?\`, \`getProductUrl?(product)\`, \`onProductClick?(event, product)\`. Renders the badge, title, description, "View more" link (when \`section.viewMoreUrl\` is set) and carousel |
+| \`ProductCarousel\` | \`products\`, \`label?\` (accessible name), \`translations?\`, \`getProductUrl?\`, \`onProductClick?\` |
+| \`ProductCard\` | \`product\`, \`href?\` (default \`product.url\`), \`onClick?(event)\` |
+`}
+</Markdown>

@@ -1,0 +1,65 @@
+import { Meta, Canvas } from '@storybook/addon-docs/blocks';
+import * as HeadlessStories from '../examples/Headless.stories';
+
+<Meta title="Guides/Custom UI" />
+
+# Custom UI
+
+`useAgentOverview` takes the component's props and returns the stream's state, so you render it yourself. See [useAgentOverview](?path=/docs/components-utilities-useagentoverview--docs).
+
+```jsx
+import {
+  useAgentOverview,
+  RecommendationSection,
+} from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
+
+const domains = {
+  suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
+  results: 'YOUR_RESULTS_DOMAIN',
+};
+
+function MyAgentOverview({ intent }) {
+  const {
+    phase,
+    categories,
+    categoryDescription,
+    sections,
+    selectCategory,
+    isLoading,
+    error,
+  } = useAgentOverview({ apiKey: 'YOUR_API_KEY', intent, domains });
+
+  if (error) return <p>{error}</p>;
+  if (isLoading) return <p>Loading...</p>;
+
+  if (phase === 'categories') {
+    return (
+      <div>
+        <p>{categoryDescription}</p>
+        {categories.map((category) => (
+          <button
+            key={category.title}
+            type="button"
+            onClick={() => selectCategory(category)}
+          >
+            {category.title}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="cio-agent-overview-root">
+      {sections.map((section) => (
+        <RecommendationSection key={section.title} section={section} />
+      ))}
+    </div>
+  );
+}
+```
+
+The hook ignores `theme`, `callbacks` and `translations`; pass them to the [components](?path=/docs/components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
+
+<Canvas of={HeadlessStories.Default} />
