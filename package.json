@@ -129,7 +129,7 @@
     "vitest-fail-on-console": "^0.10.1"
   },
   "volta": {
-    "node": "22.17.1",
+    "node": "24.22.1",
     "npm": "10.9.3"
   }
 }
