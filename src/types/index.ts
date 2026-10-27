@@ -101,6 +101,8 @@ export type Translations = {
   'CioAgentOverview.carousel.label'?: string;
   'CioAgentOverview.categories.carouselLabel'?: string;
   'CioAgentOverview.error.message'?: string;
+  'CioAgentRecommendations.fallbackTitle'?: string;
+  'CioAgentRecommendations.refinement.label'?: string;
 };
 
 /** Agent stream domain identifiers for fetching category suggestions and product results. */
@@ -150,4 +152,39 @@ export interface IRecommendationSection {
   products: IProduct[];
   /** URL for the "View more" link. Populated via the `getViewMoreUrl` callback. */
   viewMoreUrl?: string;
+}
+
+/** Callback functions for handling user interactions within the Agent Recommendations component. */
+export interface IAgentRecommendationsCallbacks {
+  /** Called when a user clicks on a product card in the pod. */
+  onProductClick?: (event: React.MouseEvent, product: IProduct) => void;
+  /** Called when a user clicks on a refinement option, before the pod reloads for it. */
+  onRefinementClick?: (option: string) => void;
+  /** Builds a URL for a product card link. If not provided, the product's default URL is used. */
+  getProductUrl?: (product: IProduct) => string;
+}
+
+/** Props for the CioAgentRecommendations component and useAgentRecommendations hook. */
+export interface IAgentRecommendationsProps {
+  /** Constructor.io API key. Required if `cioJsClient` is not provided. */
+  apiKey?: string;
+  /** Pre-configured Constructor.io JS client instance. Takes precedence over `apiKey`. */
+  cioJsClient?: ConstructorIOClient;
+  /** The id of the product on the page. The pod recommends relative to it. */
+  itemId: string;
+  /** The selected variation of that product, such as a color or size. */
+  variationId?: string;
+  /**
+   * The recommendations pod to run, such as `complementary_pod` or `alternatives_pod`. The accepted
+   * values are configured per index key by Constructor.
+   */
+  strategy: string;
+  /** Title to show when the agent returns its default, non-personalized set. */
+  defaultTitle?: string;
+  /** Theme overrides for customizing visual appearance via CSS custom properties. */
+  theme?: CioAgentOverviewTheme;
+  /** Callback functions for handling user interactions. */
+  callbacks?: IAgentRecommendationsCallbacks;
+  /** Translation overrides for internationalizing UI strings. */
+  translations?: Translations;
 }
