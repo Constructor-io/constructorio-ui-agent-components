@@ -1,0 +1,27 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Recommendations/AB Testing" />
+
+# A/B Testing
+
+Pass `abTest` on every render, with the shopper's arm and test cells, and set `trackingConfigs.viewThreshold` to `0.01` so a view counts as soon as the pod scrolls into view:
+
+```jsx
+<CioAgentRecommendations
+  apiKey="YOUR_API_KEY"
+  itemId={product.id}
+  itemName={product.name}
+  strategy="complementary_pod"
+  abTest={{
+    isControl: shopperIsInControlArm,
+    testCells: { constructorio: window.cnstrc.testCell },
+  }}
+  trackingConfigs={{ viewThreshold: 0.01 }}
+/>
+```
+
+- `abTest.testCells` is sent as `ef-<testName>` on the pod's requests and events. If you pass your own `cioJsClient`, set `testCells` on that client instead: the pod logs a warning and ignores `abTest.testCells`.
+- `abTest.isControl: true` renders an invisible, tracking-only placeholder in the pod's place: no request, no markup, no overrides. It still sends the view events, so both arms are measured the same way. Render it at the same position as the pod, and keep your existing recommendations there for control shoppers.
+- Tracking must be live in production before the test starts.
+
+The control arm's view is sent by the pod itself, with the same event as the test arm. See [Tracking](?path=/docs/agent-recommendations-tracking--docs) for every event.

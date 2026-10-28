@@ -1,0 +1,41 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Recommendations/Customization" />
+
+# Customization
+
+## Styling
+
+Import `@constructor-io/constructorio-ui-agent-components/styles.css`. Without it the component renders unstyled.
+
+The pod is scoped to `.cio-agent-recommendations-root`, and its title and refinement options have `cio-agent-recommendations-` classes to style against. The carousel, product cards and loading skeleton are shared with Agent Overview and keep their `cio-agent-overview-` classes. The pod fills its container's width.
+
+## Theming
+
+`theme` takes the same properties as Agent Overview's, listed in [its Customization guide](?path=/docs/agent-overview-customization--docs#theming).
+
+```jsx
+<CioAgentRecommendations theme={{ primaryColor: '#1a1a1a', spacingMd: '16px' }} />
+```
+
+## Translations
+
+```jsx
+<CioAgentRecommendations
+  translations={{ 'CioAgentRecommendations.fallbackTitle': 'También te puede gustar' }}
+/>
+```
+
+<Markdown>
+  {`
+| Key | Default |
+|---|---|
+| \`CioAgentRecommendations.fallbackTitle\` | You may also like |
+| \`CioAgentRecommendations.refinement.label\` | Refine recommendations |
+| \`CioAgentOverview.skeleton.thinking\` | Thinking |
+| \`CioAgentOverview.carousel.previous\` | Show previous items |
+| \`CioAgentOverview.carousel.next\` | Show next items |
+`}
+</Markdown>
+
+`fallbackTitle` is shown when the agent returns no title, or a degraded response, and `defaultTitle` isn't set. `refinement.label` and the two carousel keys are read only by screen readers, so an empty string falls back to the default. Content from the API, such as titles, options and product names, isn't translated.

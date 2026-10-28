@@ -4,9 +4,15 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Integration Guide
 
-`CioAgentRecommendations` is a recommendations pod for a product page. It loads an AI-written title, a carousel of products picked for the product being viewed, and options such as "Slim cardholders" that reload the pod for one interest.
+Agent Recommendations is a recommendations pod for a product page: an AI-written title, a carousel of products picked for the product being viewed, and options such as "Slim cardholders" that reload the pod for one interest.
 
-1. **Render it** on the product page.
+1. **Install**
+
+   ```bash
+   npm install @constructor-io/constructorio-ui-agent-components
+   ```
+
+2. **Render it** on the product page.
 
    ```jsx
    import { CioAgentRecommendations } from '@constructor-io/constructorio-ui-agent-components';
@@ -15,26 +21,19 @@ import { Meta } from '@storybook/addon-docs/blocks';
    <CioAgentRecommendations
      apiKey="YOUR_API_KEY"
      itemId={product.id}
+     itemName={product.name}
      strategy="complementary_pod"
    />;
    ```
 
-   Ask your Integration Engineer which strategies your key has, such as `complementary_pod` or `alternatives_pod`. A new `itemId`, `variationId` or `strategy` starts a new pod.
+   Ask your Integration Engineer which strategies your key has, such as `complementary_pod` or `alternatives_pod`. A new `itemId`, `variationId` or `strategy` starts a new pod. The pod renders nothing when the request fails or returns no products, so the page looks as it did without it.
 
-2. **Share your client.** The pod sends the shopper's identity so it can personalize. If your site already has a Constructor JS client, pass it as `cioJsClient` so the pod also sends its `userId` and segments.
+3. **Share your client.** The pod sends the shopper's identity so it can personalize. If your site already has a Constructor JS client, pass it as `cioJsClient` so the pod also sends its `userId` and segments.
 
-3. **Style it.** It shares the theme and stylesheet of Agent Overview. See [Agent Overview's Customization](?path=/docs/agent-overview-customization--docs).
+4. **Handle clicks.** See [Callbacks](?path=/docs/agent-recommendations-callbacks--docs).
 
-The pod renders nothing when the request fails or returns no products, so the page looks as it did without it.
+5. **Style it.** See [Customization](?path=/docs/agent-recommendations-customization--docs).
 
-## Callbacks
+6. **Check the tracking.** The pod sends Constructor's behavioral events itself. See [Tracking](?path=/docs/agent-recommendations-tracking--docs). Running a test? See [A/B Testing](?path=/docs/agent-recommendations-ab-testing--docs).
 
-```jsx
-callbacks={{
-  getProductUrl: (product) => product.url,
-  onProductClick: (event, product) => {},
-  onRefinementClick: (option) => {},
-}}
-```
-
-`onRefinementClick` runs before the pod reloads for the option. For your own markup, `useAgentRecommendations` takes the same props and returns `title`, `products`, `refinementOptions`, `activeRefinement`, `refine`, `isLoading` and `error`.
+7. **Need your own markup?** Replace parts of the pod, or all of it. See [Custom UI](?path=/docs/agent-recommendations-custom-ui--docs).

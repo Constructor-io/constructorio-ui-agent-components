@@ -1,0 +1,31 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Recommendations/Callbacks" />
+
+# Callbacks
+
+```jsx
+<CioAgentRecommendations
+  apiKey="YOUR_API_KEY"
+  itemId={product.id}
+  itemName={product.name}
+  strategy="complementary_pod"
+  callbacks={{
+    onProductClick: (event, product) =>
+      myAnalytics.track('product_click', { name: product.itemName }),
+    onRefinementClick: (option) =>
+      myAnalytics.track('refinement_click', { option }),
+    getProductUrl: (product) => `${product.url}?ref=agent-recommendations`,
+  }}
+/>
+```
+
+<Markdown>
+  {`
+| Callback | Called |
+|---|---|
+| \`onProductClick(event, product)\` | When a product card is clicked. The card is a link: call \`event.preventDefault()\` to navigate yourself |
+| \`onRefinementClick(option)\` | When a refinement option is clicked, before the pod reloads for it |
+| \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
+`}
+</Markdown>

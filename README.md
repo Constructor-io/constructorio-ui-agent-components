@@ -37,7 +37,7 @@ Agent Recommendations:
 import { CioAgentRecommendations } from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-<CioAgentRecommendations apiKey='YOUR_API_KEY' itemId='PRODUCT_ID' strategy='complementary_pod' />;
+<CioAgentRecommendations apiKey='YOUR_API_KEY' itemId='PRODUCT_ID' itemName='Product name' strategy='complementary_pod' />;
 ```
 
 Every component's guides and props are in the [docs](https://constructor-io.github.io/constructorio-ui-agent-components/).
