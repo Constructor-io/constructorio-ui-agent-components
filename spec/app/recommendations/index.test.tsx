@@ -45,8 +45,10 @@ describe('CioAgentRecommendations', () => {
       await screen.findByRole('heading', { name: 'Everyday Carry' })
     ).toBeInTheDocument();
     expect(screen.getByText('Card Holder')).toBeInTheDocument();
+    // The options sit under the products with no visible lead-in text.
+    expect(screen.queryByText(/looking for/i)).not.toBeInTheDocument();
     expect(
-      screen.getByRole('group', { name: "Not what you're looking for? Try:" })
+      screen.getByRole('group', { name: 'Refine recommendations' })
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Slim cardholders' })

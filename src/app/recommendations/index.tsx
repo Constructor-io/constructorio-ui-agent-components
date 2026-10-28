@@ -1,8 +1,6 @@
-import { useId } from 'react';
-
 import type { IAgentRecommendationsProps } from '@src/types';
 import buildThemeStyles from '@src/utils/theme';
-import translate from '@src/utils/translate';
+import { translateLabel } from '@src/utils/translate';
 
 import ProductCarousel from '../components/ProductCarousel/ProductCarousel';
 import Skeleton from '../components/Skeleton/Skeleton';
@@ -39,7 +37,6 @@ export default function CioAgentRecommendations(
     isLoading,
   } = useAgentRecommendations(props);
   const { callbacks, translations } = props;
-  const refinementLabelId = useId();
 
   const isFirstLoad = isLoading && products.length === 0;
   if (!isFirstLoad && products.length === 0) return null;
@@ -65,17 +62,11 @@ export default function CioAgentRecommendations(
             <div
               className="cio-agent-recommendations-refinement"
               role="group"
-              aria-labelledby={refinementLabelId}
+              aria-label={translateLabel(
+                'CioAgentRecommendations.refinement.label',
+                translations
+              )}
             >
-              <span
-                id={refinementLabelId}
-                className="cio-agent-recommendations-refinement-label"
-              >
-                {translate(
-                  'CioAgentRecommendations.refinement.label',
-                  translations
-                )}
-              </span>
               {refinementOptions.map((option) => (
                 <button
                   key={option}
