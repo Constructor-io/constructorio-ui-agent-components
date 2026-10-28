@@ -28,38 +28,100 @@
 .cio-agent-recommendations-refinement {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: var(--cio-spacing-sm);
-}
-
-.cio-agent-recommendations-refinement-label {
-  font-family: var(--cio-font-family);
-  font-size: var(--cio-font-size-sm);
-  color: var(--cio-color-muted);
-  line-height: var(--cio-line-height);
 }
 
 .cio-agent-recommendations-option {
   font-family: var(--cio-font-family);
-  font-size: var(--cio-font-size-sm);
-  color: var(--cio-color-primary);
-  background: var(--cio-color-background);
+  font-size: var(--cio-font-size-xs);
+  font-weight: var(--cio-font-weight-normal);
+  line-height: var(--cio-line-height);
+  color: var(--cio-color-muted);
+  background: var(--cio-color-background-muted);
   border: 1px solid var(--cio-color-border);
-  border-radius: 999px;
-  padding: var(--cio-spacing-xs) var(--cio-spacing-md);
+  border-radius: 9999px;
+  padding: 6px 12px;
   min-height: 24px;
   cursor: pointer;
 }
 
 .cio-agent-recommendations-option:hover:not(:disabled) {
   border-color: var(--cio-color-hover-accent);
+  color: var(--cio-color-primary);
 }
 
 .cio-agent-recommendations-option[aria-pressed='true'] {
   border-color: var(--cio-color-primary);
-  font-weight: var(--cio-font-weight-semibold);
+  color: var(--cio-color-primary);
+  font-weight: var(--cio-font-weight-medium);
 }
 
 .cio-agent-recommendations-option:disabled {
   cursor: default;
+}
+
+/* The carousel injects padding-left equal to its slide gap on the track, which insets the
+   first card from the title and options. Three selectors outrank its two. */
+.cio-agent-recommendations-root
+  .cio-agent-overview-carousel
+  [data-slot='carousel-track'] {
+  padding-left: 0;
+}
+
+/* Product cards, in the style of a shadcn card: bordered, lightly shadowed, the image
+   edge to edge, then the name and the price. Scoped to the pod, so Agent Overview's
+   cards are unchanged. */
+.cio-agent-recommendations-root .cio-product-card {
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--cio-color-border);
+  border-radius: 12px;
+  background: var(--cio-color-background);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition:
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+
+.cio-agent-recommendations-root
+  .cio-agent-overview-product-card:hover
+  .cio-product-card {
+  border-color: var(--cio-color-subtle);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.08),
+    0 2px 4px -2px rgb(0 0 0 / 0.06);
+}
+
+.cio-agent-recommendations-root .cio-agent-overview-product-card:focus-visible {
+  outline: 2px solid var(--cio-color-primary);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.cio-agent-recommendations-root .cio-product-card-image {
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.cio-agent-recommendations-root .cio-product-card-content {
+  gap: var(--cio-spacing-xs);
+  padding: 12px;
+}
+
+/* The name reads first, the price second, as on a shadcn card's title and description. */
+.cio-agent-recommendations-root .cio-product-card-title-section {
+  order: -1;
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-sm);
+  font-weight: var(--cio-font-weight-medium);
+  line-height: 1.4;
+  color: var(--cio-color-primary);
+}
+
+.cio-agent-recommendations-root .cio-product-card-price-section span {
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-sm);
+  font-weight: var(--cio-font-weight-normal);
+  color: var(--cio-color-muted);
 }
