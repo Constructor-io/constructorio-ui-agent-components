@@ -11,6 +11,8 @@ const DEFAULT_AGENT_SERVICE_URL = 'https://agent.cnstrc.com';
 interface AgentClientOptions {
   apiKey?: string;
   cioJsClient?: ConstructorIOClient;
+  /** Set on a client created for `apiKey`. A supplied `cioJsClient` keeps its own. */
+  testCells?: Record<string, string>;
 }
 
 export interface RecommendationsRequest {
@@ -58,9 +60,11 @@ interface ClientIdentity {
   agentServiceUrl?: string;
 }
 
-function resolveClient({
+/** The pod's JS client: the host's, or one created for `apiKey` and tagged as this component's. */
+export function createRecommendationsClient({
   apiKey,
   cioJsClient,
+  testCells,
 }: AgentClientOptions): ConstructorIOClient {
   if (cioJsClient) return cioJsClient;
   if (apiKey) {
@@ -68,6 +72,7 @@ function resolveClient({
       apiKey,
       sendTrackingEvents: true,
       version: `cio-ui-agent-recommendations-${version}`,
+      ...(testCells && { testCells }),
     });
   }
   throw new Error('Either apiKey or cioJsClient must be provided');
@@ -130,7 +135,7 @@ export async function fetchRecommendations(
   request: RecommendationsRequest,
   signal?: AbortSignal
 ): Promise<RecommendationsResult> {
-  const client = resolveClient(options);
+  const client = createRecommendationsClient(options);
   const identity = (client as unknown as { options: ClientIdentity }).options;
 
   const response = await fetch(buildUrl(identity, request.threadId), {

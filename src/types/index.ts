@@ -1,4 +1,6 @@
+// cspell:ignore cnstrc -- Constructor's page global, window.cnstrc
 import type ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
+import type { RenderPropsChildren } from '@constructor-io/constructorio-ui-components';
 
 /** Theme customization for the Agent Overview component. All properties map to CSS custom properties. */
 export interface CioAgentOverviewTheme {
@@ -143,6 +145,10 @@ export interface IProduct {
   imageUrl: string;
   price: number;
   url: string;
+  /** The product's catalog id, when the response carries one. Sent with click tracking. */
+  itemId?: string;
+  /** The variation's catalog id, when the response carries one. Sent with click tracking. */
+  variationId?: string;
 }
 
 /** A group of recommended products with a title and description. */
@@ -164,6 +170,77 @@ export interface IAgentRecommendationsCallbacks {
   getProductUrl?: (product: IProduct) => string;
 }
 
+/** Overrides one part: a node rendered in its place, or a function that renders it from the part's props. */
+export interface IComponentOverride<RenderProps> {
+  reactNode?: RenderPropsChildren<RenderProps>;
+}
+
+/** The pod's state, returned by useAgentRecommendations and passed to a root override. */
+export interface IAgentRecommendationsRenderProps {
+  /** The pod title for the response on screen. Empty until the first response settles. */
+  title: string;
+  products: IProduct[];
+  /** Labels to offer as refinements. */
+  refinementOptions: string[];
+  /** The option behind the products on screen, or `null` before any refinement. */
+  activeRefinement: string | null;
+  /** Reloads the pod for one of `refinementOptions`, on the same thread. */
+  refine: (option: string) => void;
+  /** While the first load or a refinement is in flight. */
+  isLoading: boolean;
+  /** Why the last request failed. Products from an earlier response stay. */
+  error: string | null;
+  /** The `result_id` of the response on screen, or `null` before one settles. */
+  resultId: string | null;
+  /** The pod's conversation thread, or `null` before the first response settles. */
+  threadId: string | null;
+}
+
+/** Root override props: the pod's state, plus the tracking an override must report itself. */
+export interface IAgentRecommendationsRootRenderProps extends IAgentRecommendationsRenderProps {
+  /** Reports a product click to Constructor. Call it from your own card's click handler. */
+  trackProductClick: (product: IProduct, index: number) => void;
+}
+
+/** What useAgentRecommendations returns: everything a root override receives, plus the view tracking. */
+export interface IAgentRecommendationsHookReturn extends IAgentRecommendationsRootRenderProps {
+  /**
+   * Attach to the pod's outermost element. It sends the view, out-of-view and time-in-view events;
+   * without it, only the response and click events are sent.
+   */
+  containerRef: (node: HTMLElement | null) => void;
+}
+
+/** Props passed to a `componentOverrides.productCard` override. */
+export interface IAgentRecommendationsProductCardRenderProps {
+  product: IProduct;
+  index: number;
+  /** Reports this product's click to Constructor. Call it from your card's click handler. */
+  trackClick: () => void;
+}
+
+/** Props passed to a `componentOverrides.refinement` override. */
+export interface IAgentRecommendationsRefinementRenderProps {
+  options: string[];
+  activeRefinement: string | null;
+  /** Tracks the click, calls `callbacks.onRefinementClick`, then reloads the pod for the option. */
+  refine: (option: string) => void;
+  isLoading: boolean;
+}
+
+/** Per-part overrides for CioAgentRecommendations. `reactNode` at the top level replaces the whole pod. */
+export type IAgentRecommendationsComponentOverrides =
+  IComponentOverride<IAgentRecommendationsRootRenderProps> & {
+    /** The pod title. */
+    title?: IComponentOverride<{ title: string; isLoading: boolean }>;
+    /** Each product card in the carousel. */
+    productCard?: IComponentOverride<IAgentRecommendationsProductCardRenderProps>;
+    /** The row of refinement options under the carousel. */
+    refinement?: IComponentOverride<IAgentRecommendationsRefinementRenderProps>;
+    /** The placeholder shown on the first load. */
+    loading?: IComponentOverride<Record<string, never>>;
+  };
+
 /** Props for the CioAgentRecommendations component and useAgentRecommendations hook. */
 export interface IAgentRecommendationsProps {
   /** Constructor.io API key. Required if `cioJsClient` is not provided. */
@@ -172,6 +249,8 @@ export interface IAgentRecommendationsProps {
   cioJsClient?: ConstructorIOClient;
   /** The id of the product on the page. The pod recommends relative to it. */
   itemId: string;
+  /** The name of the product on the page. Sent with every tracking event. */
+  itemName: string;
   /** The selected variation of that product, such as a color or size. */
   variationId?: string;
   /**
@@ -187,4 +266,48 @@ export interface IAgentRecommendationsProps {
   callbacks?: IAgentRecommendationsCallbacks;
   /** Translation overrides for internationalizing UI strings. */
   translations?: Translations;
+  /** Replaces parts of the pod, or the whole pod with `reactNode`. */
+  componentOverrides?: IAgentRecommendationsComponentOverrides;
+  /**
+   * Replaces the whole pod. A function receives the pod's state.
+   * Takes precedence over `componentOverrides.reactNode`.
+   */
+  children?: RenderPropsChildren<IAgentRecommendationsRootRenderProps>;
+  /** Behavioral tracking options. */
+  trackingConfigs?: IAgentRecommendationsTrackingConfigs;
+  /** A/B test setup: the shopper's test cells and arm. */
+  abTest?: IAgentRecommendationsAbTest;
+}
+
+/** A/B test setup for CioAgentRecommendations, as in the Product Insights Agent UI library. */
+export interface IAgentRecommendationsAbTest {
+  /**
+   * Test cells to attach to the pod's requests and tracking events, as `{ [testName]: cellName }`.
+   * Each entry is sent as an `ef-<testName>` parameter. Constructor's docs have the page set
+   * `window.cnstrc.testCell` to a bare cell name, so label it with your test name:
+   * `{ constructorio: window.cnstrc.testCell }`.
+   *
+   * Ignored when you supply your own `cioJsClient`: that client owns its own options, so set
+   * `testCells` there instead, as a `ConstructorIOClient` constructor option. Passing both logs a
+   * warning.
+   */
+  testCells?: Record<string, string>;
+  /**
+   * Mark this shopper as the control group. The pod makes no request and renders an invisible,
+   * tracking-only placeholder instead, so both arms of the test record a view event. The placeholder
+   * renders neither `children` nor `componentOverrides`.
+   *
+   * Required: stating the arm per shopper is the one thing only you can know, and leaving it out
+   * would silently put every shopper in the test arm with no control group at all.
+   */
+  isControl: boolean;
+}
+
+/** Behavioral tracking options for CioAgentRecommendations. */
+export interface IAgentRecommendationsTrackingConfigs {
+  /**
+   * Share of the pod that must be on screen to count as a view, from 0 to 1. Use 0.01 for an A/B
+   * test, so a view counts as soon as the pod scrolls into view. @default 0.5
+   */
+  viewThreshold?: number;
 }

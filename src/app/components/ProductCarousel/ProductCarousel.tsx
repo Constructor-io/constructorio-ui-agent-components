@@ -1,4 +1,8 @@
-import { Carousel } from '@constructor-io/constructorio-ui-components';
+import type { RenderPropsChildren } from '@constructor-io/constructorio-ui-components';
+import {
+  Carousel,
+  RenderPropsWrapper,
+} from '@constructor-io/constructorio-ui-components';
 
 import type { IProduct, Translations } from '@src/types';
 import { translateLabel } from '@src/utils/translate';
@@ -16,8 +20,17 @@ interface IProductCarouselProps {
   translations?: Translations;
   /** Builds a custom URL for each product card link. */
   getProductUrl?: (product: IProduct) => string;
-  /** Called when a product card is clicked. */
-  onProductClick?: (event: React.MouseEvent, product: IProduct) => void;
+  /** Called when a product card is clicked, with the card's position in the carousel. */
+  onProductClick?: (
+    event: React.MouseEvent,
+    product: IProduct,
+    index: number
+  ) => void;
+  /** Renders each card in place of the default ProductCard. */
+  productCardOverride?: RenderPropsChildren<{
+    product: IProduct;
+    index: number;
+  }>;
 }
 
 /** Horizontal carousel of product cards with navigation arrows. */
@@ -27,6 +40,7 @@ export default function ProductCarousel({
   translations,
   getProductUrl,
   onProductClick,
+  productCardOverride,
 }: IProductCarouselProps) {
   const libraryProducts = products.map(toLibraryProduct);
 
@@ -54,15 +68,21 @@ export default function ProductCarousel({
                 const product = products[index];
                 return (
                   <Carousel.Item key={item.id} item={item} index={index}>
-                    <ProductCard
-                      product={product}
-                      href={getProductUrl?.(product)}
-                      onClick={
-                        onProductClick
-                          ? (e: React.MouseEvent) => onProductClick(e, product)
-                          : undefined
-                      }
-                    />
+                    <RenderPropsWrapper
+                      props={{ product, index }}
+                      override={productCardOverride}
+                    >
+                      <ProductCard
+                        product={product}
+                        href={getProductUrl?.(product)}
+                        onClick={
+                          onProductClick
+                            ? (e: React.MouseEvent) =>
+                                onProductClick(e, product, index)
+                            : undefined
+                        }
+                      />
+                    </RenderPropsWrapper>
                   </Carousel.Item>
                 );
               })}
