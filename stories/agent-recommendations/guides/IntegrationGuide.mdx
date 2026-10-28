@@ -1,8 +1,8 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 
-<Meta title="Guides/Recommendations" />
+<Meta title="Agent Recommendations/Integration Guide" />
 
-# Recommendations
+# Integration Guide
 
 `CioAgentRecommendations` is a recommendations pod for a product page. It loads an AI-written title, a carousel of products picked for the product being viewed, and options such as "Slim cardholders" that reload the pod for one interest.
 
@@ -23,7 +23,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 2. **Share your client.** The pod sends the shopper's identity so it can personalize. If your site already has a Constructor JS client, pass it as `cioJsClient` so the pod also sends its `userId` and segments.
 
-3. **Style it.** It shares the theme and stylesheet of Agent Overview. See [Customization](?path=/docs/guides-customization--docs).
+3. **Style it.** It shares the theme and stylesheet of Agent Overview. See [Agent Overview's Customization](?path=/docs/agent-overview-customization--docs).
 
 The pod renders nothing when the request fails or returns no products, so the page looks as it did without it.
 
