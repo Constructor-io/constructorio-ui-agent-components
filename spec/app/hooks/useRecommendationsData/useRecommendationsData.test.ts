@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import useAgentRecommendations from '@src/app/hooks/useAgentRecommendations';
+import useRecommendationsData from '@src/app/hooks/useRecommendationsData';
 import {
   fetchRecommendations,
   type RecommendationsResult,
@@ -34,10 +34,11 @@ const pod = (
 const baseProps = {
   apiKey: 'key_test',
   itemId: '119801',
+  itemName: 'Card Holder Anchor',
   strategy: 'complementary_pod',
 };
 
-describe('useAgentRecommendations', () => {
+describe('useRecommendationsData', () => {
   afterEach(() => {
     mockedFetch.mockReset();
   });
@@ -45,7 +46,7 @@ describe('useAgentRecommendations', () => {
   it('should load the pod for the product on mount', async () => {
     mockedFetch.mockResolvedValue(pod());
 
-    const { result } = renderHook(() => useAgentRecommendations(baseProps));
+    const { result } = renderHook(() => useRecommendationsData(baseProps));
 
     expect(result.current.isLoading).toBe(true);
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -70,7 +71,7 @@ describe('useAgentRecommendations', () => {
 
   it('should refine on the same thread and keep the products on screen while it loads', async () => {
     mockedFetch.mockResolvedValueOnce(pod());
-    const { result } = renderHook(() => useAgentRecommendations(baseProps));
+    const { result } = renderHook(() => useRecommendationsData(baseProps));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     let resolveRefinement: (value: RecommendationsResult) => void = () => {};
@@ -106,7 +107,7 @@ describe('useAgentRecommendations', () => {
   it('should fall back to a generic title for a degraded response', async () => {
     mockedFetch.mockResolvedValue(pod({ status: 'partial' }));
 
-    const { result } = renderHook(() => useAgentRecommendations(baseProps));
+    const { result } = renderHook(() => useRecommendationsData(baseProps));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.title).toBe('You may also like');
@@ -117,7 +118,7 @@ describe('useAgentRecommendations', () => {
     mockedFetch.mockResolvedValue(pod({ title: '' }));
 
     const { result } = renderHook(() =>
-      useAgentRecommendations({ ...baseProps, defaultTitle: 'Pairs well with' })
+      useRecommendationsData({ ...baseProps, defaultTitle: 'Pairs well with' })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -127,7 +128,7 @@ describe('useAgentRecommendations', () => {
   it('should report a failed first load with no products', async () => {
     mockedFetch.mockRejectedValue(new Error('status 400'));
 
-    const { result } = renderHook(() => useAgentRecommendations(baseProps));
+    const { result } = renderHook(() => useRecommendationsData(baseProps));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe('status 400');
@@ -136,7 +137,7 @@ describe('useAgentRecommendations', () => {
 
   it('should keep the products when a refinement fails', async () => {
     mockedFetch.mockResolvedValueOnce(pod());
-    const { result } = renderHook(() => useAgentRecommendations(baseProps));
+    const { result } = renderHook(() => useRecommendationsData(baseProps));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     mockedFetch.mockRejectedValueOnce(new Error('status 500'));
@@ -153,7 +154,7 @@ describe('useAgentRecommendations', () => {
   it('should start a new pod without the old thread when the product changes', async () => {
     mockedFetch.mockResolvedValue(pod());
     const { result, rerender } = renderHook(
-      (props) => useAgentRecommendations(props),
+      (props) => useRecommendationsData(props),
       { initialProps: baseProps }
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -182,7 +183,7 @@ describe('useAgentRecommendations', () => {
     mockedFetch.mockResolvedValueOnce(pod({ title: 'Second product' }));
 
     const { result, rerender } = renderHook(
-      (props) => useAgentRecommendations(props),
+      (props) => useRecommendationsData(props),
       { initialProps: baseProps }
     );
     rerender({ ...baseProps, itemId: '200000' });

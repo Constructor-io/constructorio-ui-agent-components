@@ -1,6 +1,7 @@
 import ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
 
 import {
+  createRecommendationsClient,
   fetchRecommendations,
   RecommendationsRequestError,
 } from '@src/app/services/agentRecommendationsClient';
@@ -194,5 +195,38 @@ describe('fetchRecommendations', () => {
 
     await expect(request).rejects.toBeInstanceOf(RecommendationsRequestError);
     await expect(request).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe('createRecommendationsClient', () => {
+  afterEach(() => {
+    MockedClient.mockReset();
+  });
+
+  it('should set the test cells on a client it creates', () => {
+    MockedClient.mockImplementation(function (this: unknown) {
+      return this as never;
+    });
+
+    createRecommendationsClient({
+      apiKey: 'key_test',
+      testCells: { constructorio: 'cell_a' },
+    });
+
+    const [clientOptions] = MockedClient.mock.calls[0];
+    expect(clientOptions.testCells).toEqual({ constructorio: 'cell_a' });
+    expect(clientOptions.sendTrackingEvents).toBe(true);
+  });
+
+  it('should return a supplied client untouched, ignoring the cells', () => {
+    const supplied = {} as ConstructorIOClient;
+
+    expect(
+      createRecommendationsClient({
+        cioJsClient: supplied,
+        testCells: { constructorio: 'cell_a' },
+      })
+    ).toBe(supplied);
+    expect(MockedClient).not.toHaveBeenCalled();
   });
 });

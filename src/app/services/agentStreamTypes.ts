@@ -13,6 +13,8 @@ export interface AgentStreamGroupEvent {
 export interface AgentStreamResultItem {
   value?: string;
   data?: {
+    id?: string;
+    variation_id?: string;
     image_url?: string;
     url?: string;
     price?: number;

@@ -96,7 +96,7 @@ describe('ProductCarousel', () => {
     });
   });
 
-  it('calls onProductClick with event and product when clicked', async () => {
+  it('calls onProductClick with event, product and position when clicked', async () => {
     const user = userEvent.setup();
     const handleClick = vi.fn();
     render(
@@ -106,7 +106,8 @@ describe('ProductCarousel', () => {
     await user.click(links[0]);
     expect(handleClick).toHaveBeenCalledExactlyOnceWith(
       expect.anything(),
-      products[0]
+      products[0],
+      0
     );
   });
 

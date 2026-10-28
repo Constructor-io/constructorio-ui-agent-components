@@ -13,5 +13,7 @@ export default function toProduct(
     imageUrl,
     price: item.data?.price ?? 0,
     url: item.data?.url ?? '',
+    ...(item.data?.id && { itemId: item.data.id }),
+    ...(item.data?.variation_id && { variationId: item.data.variation_id }),
   };
 }
