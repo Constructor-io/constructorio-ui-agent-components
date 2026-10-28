@@ -1,0 +1,137 @@
+import { Meta, Canvas, Markdown } from '@storybook/addon-docs/blocks';
+import * as OverrideStories from '../examples/ComponentOverrides.stories';
+import * as HeadlessStories from '../examples/Headless.stories';
+
+<Meta title="Agent Recommendations/Custom UI" />
+
+# Custom UI
+
+Replace one part of the pod with `componentOverrides`, the whole pod with `children`, or render it yourself with `useAgentRecommendations`, the hook the component is built on.
+
+## Replace a part
+
+Each part takes a `reactNode`: a node to render in its place, or a function that receives the part's props.
+
+```jsx
+<CioAgentRecommendations
+  apiKey="YOUR_API_KEY"
+  itemId={product.id}
+  itemName={product.name}
+  strategy="complementary_pod"
+  componentOverrides={{
+    title: { reactNode: ({ title }) => <h2 className="my-title">{title}</h2> },
+    refinement: {
+      reactNode: ({ options, activeRefinement, refine, isLoading }) => (
+        <div>
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={option === activeRefinement}
+              disabled={isLoading}
+              onClick={() => refine(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ),
+    },
+  }}
+/>
+```
+
+<Markdown>
+  {`
+| Override | Props |
+|---|---|
+| \`title\` | \`{ title, isLoading }\` |
+| \`productCard\` | \`{ product, index, trackClick }\`. Replaces the card inside each carousel slide, including its link, so \`getProductUrl\` and \`onProductClick\` don't apply to it. Call \`trackClick()\` on click |
+| \`refinement\` | \`{ options, activeRefinement, refine, isLoading }\`. \`refine(option)\` tracks the click, calls \`callbacks.onRefinementClick\`, then reloads the pod |
+| \`loading\` | none. Shown on the first load, in place of the skeleton |
+`}
+</Markdown>
+
+<Canvas of={OverrideStories.PartOverrides} />
+
+## Replace the whole pod
+
+`componentOverrides.reactNode`, or `children`, which takes precedence, receives the pod's state: the same values [`useAgentRecommendations`](?path=/docs/agent-recommendations-components-utilities-useagentrecommendations--docs) returns, plus `trackProductClick(product, index)`, with `refine` also tracking the click and calling `callbacks.onRefinementClick`. Call `trackProductClick` from your product links; see [Tracking](?path=/docs/agent-recommendations-tracking--docs#with-overrides).
+
+```jsx
+<CioAgentRecommendations
+  apiKey="YOUR_API_KEY"
+  itemId={product.id}
+  itemName={product.name}
+  strategy="complementary_pod"
+>
+  {({ title, products, refinementOptions, refine, trackProductClick, isLoading }) =>
+    isLoading && products.length === 0 ? (
+      <p>Loading…</p>
+    ) : (
+      <section>
+        <h2>{title}</h2>
+        <ul>
+          {products.map((product, index) => (
+            <li key={product.url}>
+              <a href={product.url} onClick={() => trackProductClick(product, index)}>
+                {product.itemName}
+              </a>
+            </li>
+          ))}
+        </ul>
+        {refinementOptions.map((option) => (
+          <button key={option} type="button" onClick={() => refine(option)}>
+            {option}
+          </button>
+        ))}
+      </section>
+    )
+  }
+</CioAgentRecommendations>
+```
+
+Unlike the default pod, a root override is rendered even when the request fails or returns no products, with `error` in its props, so you decide what belongs there.
+
+<Canvas of={OverrideStories.RootOverride} />
+
+## Render it yourself
+
+`useAgentRecommendations` is the hook the component is built on: the same data and refinements, with your markup. Refine with `refine`. It sends the response and refinement events for you; send the view and product click events through the SDK, as [Tracking](?path=/docs/agent-recommendations-tracking--docs#with-the-hook) shows.
+
+```jsx
+import { useAgentRecommendations } from '@constructor-io/constructorio-ui-agent-components';
+
+function MyPod({ product }) {
+  const { title, products, refinementOptions, refine, isLoading } = useAgentRecommendations({
+    apiKey: 'YOUR_API_KEY',
+    itemId: product.id,
+    itemName: product.name,
+    strategy: 'complementary_pod',
+  });
+
+  if (isLoading && products.length === 0) return <p>Loading…</p>;
+  if (products.length === 0) return null;
+
+  return (
+    // Send the view and product click events through the SDK: see Tracking.
+    <section>
+      <h2>{title}</h2>
+      {products.map((item) => (
+        <a key={item.url} href={item.url}>
+          {item.itemName}
+        </a>
+      ))}
+      {refinementOptions.map((option) => (
+        <button key={option} type="button" onClick={() => refine(option)}>
+          {option}
+        </button>
+      ))}
+    </section>
+  );
+}
+```
+
+Your markup is styled by the library's stylesheet only inside a `cio-agent-recommendations-root` element. See [useAgentRecommendations](?path=/docs/agent-recommendations-components-utilities-useagentrecommendations--docs) for everything it returns.
+
+<Canvas of={HeadlessStories.Default} />
