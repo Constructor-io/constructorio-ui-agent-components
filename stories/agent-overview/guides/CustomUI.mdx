@@ -1,11 +1,11 @@
 import { Meta, Canvas } from '@storybook/addon-docs/blocks';
 import * as HeadlessStories from '../examples/Headless.stories';
 
-<Meta title="Guides/Custom UI" />
+<Meta title="Agent Overview/Custom UI" />
 
 # Custom UI
 
-`useAgentOverview` takes the component's props and returns the stream's state, so you render it yourself. See [useAgentOverview](?path=/docs/components-utilities-useagentoverview--docs).
+`useAgentOverview` takes the component's props and returns the stream's state, so you render it yourself. See [useAgentOverview](?path=/docs/agent-overview-components-utilities-useagentoverview--docs).
 
 ```jsx
 import {
@@ -60,6 +60,6 @@ function MyAgentOverview({ intent }) {
 }
 ```
 
-The hook ignores `theme`, `callbacks` and `translations`; pass them to the [components](?path=/docs/components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
+The hook ignores `theme`, `callbacks` and `translations`; pass them to the [components](?path=/docs/agent-overview-components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
 
 <Canvas of={HeadlessStories.Default} />

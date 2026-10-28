@@ -5,7 +5,7 @@ import CioAgentOverview from '@src/index';
 import { argTypes, demoArgs } from '../fixtures';
 
 const meta: Meta<typeof CioAgentOverview> = {
-  title: 'Components & Utilities/CioAgentOverview',
+  title: 'Agent Overview/Components & Utilities/CioAgentOverview',
   component: CioAgentOverview,
   tags: ['autodocs'],
   parameters: {
@@ -14,7 +14,7 @@ const meta: Meta<typeof CioAgentOverview> = {
     docs: {
       description: {
         component:
-          'Streams category suggestions for an `intent`, then product sections once one is chosen. The default export. See the [Integration Guide](?path=/docs/guides-integration-guide--docs).',
+          'Streams category suggestions for an `intent`, then product sections once one is chosen. The default export. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).',
       },
     },
   },
