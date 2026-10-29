@@ -45,7 +45,7 @@ const themePropToCssVar: Record<keyof CioAgentOverviewTheme, string> = {
 function sanitizeCssValue(value: string): string {
   return value
     .replace(/[<>]/g, '')
-    .replace(/javascript:/gi, 'blocked:')
+    .replace(/(javascript|vbscript|data):/gi, 'blocked:')
     .trim();
 }
 
