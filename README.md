@@ -3,7 +3,12 @@
 [![npm](https://img.shields.io/npm/v/@constructor-io/constructorio-ui-agent-components)](https://www.npmjs.com/package/@constructor-io/constructorio-ui-agent-components)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Constructor-io/constructorio-ui-agent-components/blob/master/LICENSE)
 
-React components for Constructor.io's agentic experiences. Agent Overview streams AI-generated category suggestions and product recommendations for a shopping intent.
+React components for Constructor.io's agentic experiences.
+
+| Component | |
+|---|---|
+| Agent Overview | AI-generated category suggestions, then product recommendations, for a shopping intent |
+| Agent Recommendations | A recommendations pod for a product page, refined by the shopper |
 
 **[Documentation →](https://constructor-io.github.io/constructorio-ui-agent-components/)**
 
@@ -15,6 +20,8 @@ npm i @constructor-io/constructorio-ui-agent-components
 
 ## Usage
 
+Agent Overview:
+
 ```jsx
 import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
@@ -24,7 +31,16 @@ const domains = { suggestions: 'YOUR_SUGGESTIONS_DOMAIN', results: 'YOUR_RESULTS
 <CioAgentOverview apiKey='YOUR_API_KEY' intent='I want to buy shoes' domains={domains} />;
 ```
 
-The JavaScript bundle, the headless hook, callbacks, theming and every prop are in the [docs](https://constructor-io.github.io/constructorio-ui-agent-components/).
+Agent Recommendations:
+
+```jsx
+import { CioAgentRecommendations } from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
+
+<CioAgentRecommendations apiKey='YOUR_API_KEY' itemId='PRODUCT_ID' itemName='Product name' strategy='complementary_pod' />;
+```
+
+Every component's guides and props are in the [docs](https://constructor-io.github.io/constructorio-ui-agent-components/).
 
 ## Local Development
 

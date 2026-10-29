@@ -266,6 +266,25 @@ describe(`${CioAgentOverview.name}: client`, () => {
       expect(value).toContain('blocked:');
     });
 
+    it.each(['data:text/html,x', 'vbscript:alert(1)', 'DATA:image/svg+xml,x'])(
+      'blocks the %s protocol',
+      async (background) => {
+        const props = factories.agentOverviewProps.build({
+          theme: { background },
+        });
+
+        const { container } = render(<CioAgentOverview {...props} />);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1100);
+        });
+
+        const value = getRootElement(container).style.getPropertyValue(
+          '--cio-color-background'
+        );
+        expect(value).toMatch(/^blocked:/);
+      }
+    );
+
     it('trims whitespace from CSS values', async () => {
       const props = factories.agentOverviewProps.build({
         theme: {

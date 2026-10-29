@@ -1,0 +1,43 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Recommendations/Components & Utilities/useAgentRecommendations" />
+
+# useAgentRecommendations
+
+The hook `CioAgentRecommendations` is built on. It loads the pod, reloads it for each refinement and sends the pod's tracking events, so a pod you render yourself behaves like the component. Takes [`CioAgentRecommendations`'s props](?path=/docs/agent-recommendations-components-utilities-cioagentrecommendations--docs); `theme`, `componentOverrides` and `children` are not used. See [Custom UI](?path=/docs/agent-recommendations-custom-ui--docs#render-it-yourself).
+
+```js
+const {
+  title,
+  products,
+  refinementOptions,
+  activeRefinement,
+  refine,
+  trackProductClick,
+  containerRef,
+  isLoading,
+  error,
+  resultId,
+  threadId,
+} = useAgentRecommendations(props);
+```
+
+<Markdown>
+  {`
+| Returns | Type | |
+|---|---|---|
+| \`title\` | \`string\` | The pod title. Falls back to \`defaultTitle\`, then the \`CioAgentRecommendations.fallbackTitle\` translation |
+| \`products\` | \`IProduct[]\` | \`{ itemName, imageUrl, price, url, itemId, variationId }\`. Kept while a refinement loads |
+| \`refinementOptions\` | \`string[]\` | Labels to offer as refinements |
+| \`activeRefinement\` | \`string \\| null\` | The option behind the products on screen |
+| \`refine\` | \`(option) => void\` | Tracks the click, calls \`callbacks.onRefinementClick\`, then reloads the pod on the same thread |
+| \`trackProductClick\` | \`(product, index) => void\` | Sends the product click event. Call it from your product links |
+| \`containerRef\` | \`(node) => void\` | Attach to your pod's outermost element. It sends the view, out-of-view and time-in-view events |
+| \`isLoading\` | \`boolean\` | While the first load or a refinement is in flight |
+| \`error\` | \`string \\| null\` | Why the last request failed. Products from an earlier response stay |
+| \`resultId\` | \`string \\| null\` | The response's \`result_id\`, sent as \`qnaResultId\` with tracking |
+| \`threadId\` | \`string \\| null\` | The pod's conversation thread |
+`}
+</Markdown>
+
+It sends `AnswerView` for each response and `QuestionClick` from `refine`. Send the view and product click events yourself through the SDK; see [Tracking](?path=/docs/agent-recommendations-tracking--docs#with-the-hook).

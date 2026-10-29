@@ -61,7 +61,9 @@ export default function RecommendationSection({
         label={section.title}
         translations={translations}
         getProductUrl={getProductUrl}
-        onProductClick={onProductClick}
+        onProductClick={
+          onProductClick && ((event, product) => onProductClick(event, product))
+        }
       />
     </div>
   );

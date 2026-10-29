@@ -10,6 +10,8 @@ const defaultTranslations: Translations = {
   'CioAgentOverview.carousel.label': 'Products',
   'CioAgentOverview.categories.carouselLabel': 'Categories',
   'CioAgentOverview.error.message': 'Something went wrong. Please try again.',
+  'CioAgentRecommendations.fallbackTitle': 'You may also like',
+  'CioAgentRecommendations.refinement.label': 'Refine recommendations',
 };
 
 /**

@@ -5,7 +5,7 @@ import { demoArgs } from '../fixtures';
 import HeadlessTemplate from './HeadlessTemplate';
 
 const meta: Meta<typeof HeadlessTemplate> = {
-  title: 'Examples/Headless',
+  title: 'Agent Recommendations/Examples/Headless',
   component: HeadlessTemplate,
   tags: ['!dev'],
   parameters: { a11y: { test: 'error' } },

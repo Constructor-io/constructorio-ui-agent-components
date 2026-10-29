@@ -1,0 +1,92 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Recommendations/Tracking" />
+
+# Tracking
+
+The pod sends Constructor's behavioral tracking events itself, through its JS client. Pass the anchor product's `itemName`, which every event carries.
+
+```jsx
+<CioAgentRecommendations
+  apiKey="YOUR_API_KEY"
+  itemId={product.id}
+  itemName={product.name}
+  strategy="complementary_pod"
+/>
+```
+
+<Markdown>
+  {`
+| Event | Sent when |
+|---|---|
+| \`trackProductInsightsAgentView\` | The pod is at least 50% visible with its title and products, or they arrive while it is in view. \`questions\` = the refinement options |
+| \`trackProductInsightsAgentViews\` | The time spent in view, every 5 minutes, when the page is hidden and on unmount |
+| \`trackProductInsightsAgentOutOfView\` | The pod drops below the view threshold after being in view |
+| \`trackProductInsightsAgentAnswerView\` | A response settles: the first load, then each refinement. \`answerText\` = the title, \`question\` = the refinement, or the \`strategy\` on the first load, since the API rejects an empty \`question\`, \`qnaResultId\` = the response's \`result_id\` |
+| \`trackProductInsightsAgentQuestionClick\` | A refinement option is clicked |
+| \`trackProductInsightsAgentResultClick\` | A product card is clicked, with its \`position\` in the carousel and \`question\` as in AnswerView. Needs JS client 2.88.0 or later; an older client skips it |
+`}
+</Markdown>
+
+Events carry this library's client tag (`c`) even when you pass your own `cioJsClient`. A client you pass must be created with `sendTrackingEvents: true`, or it sends nothing; the client the pod creates from `apiKey` already is.
+
+## A/B tests
+
+See [A/B Testing](?path=/docs/agent-recommendations-ab-testing--docs) for the test cells, the control arm and the view threshold a test needs.
+
+## With overrides
+
+Views, `AnswerView` and the refinement click are sent whatever you override: they come from the pod's root element and its data. A product click is the exception, because an override replaces the link it comes from. Report it yourself:
+
+- **`productCard` override:** call `trackClick()` from your card's click handler.
+- **Root override (`children` or `componentOverrides.reactNode`):** call `trackProductClick(product, index)`, and refine with the `refine` it receives, which reports the click.
+
+```jsx
+componentOverrides={{
+  productCard: {
+    reactNode: ({ product, trackClick }) => (
+      <a href={product.url} onClick={trackClick}>
+        {product.itemName}
+      </a>
+    ),
+  },
+}}
+```
+
+## With the hook
+
+[`useAgentRecommendations`](?path=/docs/agent-recommendations-components-utilities-useagentrecommendations--docs) sends two events for you: `AnswerView` for each response, and `QuestionClick` from `refine`. The others depend on your markup, so send them yourself through the Constructor SDK, on the same client you pass the hook as `cioJsClient` (created with `sendTrackingEvents: true`):
+
+```js
+const { tracker } = cioJsClient;
+const { refinementOptions, activeRefinement, resultId, threadId } = useAgentRecommendations(props);
+
+// The fields every event needs: the product on the page, and the pod's thread.
+const base = { itemId: product.id, itemName: product.name, threadId };
+// The refinement on screen, or the strategy before one, since the API rejects an empty question.
+const question = activeRefinement || 'complementary_pod';
+// The refinement options, as the view events report them.
+const questions = refinementOptions.map((option) => ({ question: option }));
+
+// When your pod is at least 50% visible (1% for an A/B test), and when it leaves view:
+tracker.trackProductInsightsAgentView({ ...base, questions });
+tracker.trackProductInsightsAgentOutOfView(base);
+
+// Every 5 minutes it stays in view, when the page is hidden, and when it unmounts:
+tracker.trackProductInsightsAgentViews({ ...base, questions, viewTimespans });
+
+// When a shopper clicks product number `index` in your pod:
+tracker.trackProductInsightsAgentResultClick({
+  itemId: clicked.itemId,
+  itemName: clicked.itemName,
+  variationId: clicked.variationId,
+  question,
+  seedItemId: product.id,
+  seedItemName: product.name,
+  qnaResultId: resultId,
+  threadId,
+  position: index,
+});
+```
+
+`viewTimespans` is a list of `{ start, end }` ISO timestamps, one per stretch the pod was in view. Send each event once: don't also attach the hook's `containerRef` or call its `trackProductClick`, which send the same events.
