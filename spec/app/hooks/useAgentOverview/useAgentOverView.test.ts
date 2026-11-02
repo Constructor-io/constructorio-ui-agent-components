@@ -1,469 +1,286 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
+import {
+  controlledStream,
+  end,
+  itemResults,
+  message,
+  start,
+  streamOf,
+} from '@spec/__tests__/controlledStream';
 import * as factories from '@spec/factory';
 
 import useAgentOverview from '@src/app/hooks/useAgentOverview';
-import { createAgentStream } from '@src/app/services/agentOverviewClient';
+import { AgentInsightsRequestError } from '@src/app/services/agentInsightsClient';
+import { streamAgentOverview } from '@src/app/services/agentOverviewClient';
+import type { IAgentOverviewProps } from '@src/types';
 
-function createFakeCategoryStream(): ReadableStream<unknown> {
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue({
-        type: 'message',
-        data: { text: 'Here are some categories for you.' },
-      });
-      controller.enqueue({
-        type: 'search_result',
-        data: {
-          title: 'Running Shoes',
-          response: {
-            results: [
-              {
-                value: 'Running Shoes',
-                data: {
-                  image_url: 'https://example.com/run.jpg',
-                  url: '',
-                  price: 0,
-                },
-              },
-            ],
-          },
-        },
-      });
-      controller.close();
-    },
-  });
-}
-
-function createFakeProductStream(): ReadableStream<unknown> {
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue({
-        type: 'group',
-        data: { title: 'Top Picks', description: 'Best products' },
-      });
-      controller.enqueue({
-        type: 'search_result',
-        data: {
-          title: '',
-          response: {
-            results: [
-              {
-                value: 'Shoe A',
-                data: {
-                  image_url: 'https://example.com/a.jpg',
-                  url: '/a',
-                  price: 100,
-                },
-              },
-            ],
-          },
-        },
-      });
-      controller.close();
-    },
-  });
-}
-
-vi.mock('@src/app/services/agentOverviewClient', () => ({
-  createAgentStream: vi.fn(
-    (_options: unknown, _intent: string, domain: string) => {
-      if (domain === 'searchbar_agent') {
-        return createFakeCategoryStream();
-      }
-      return createFakeProductStream();
-    }
-  ),
+vi.mock('@src/app/services/agentOverviewClient', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  streamAgentOverview: vi.fn(),
 }));
 
-const mockedCreateAgentStream = vi.mocked(createAgentStream);
+const mockedStream = vi.mocked(streamAgentOverview);
+const cioJsClient = { options: { apiKey: 'k' } } as never;
 
-describe(`${useAgentOverview.name}: client`, () => {
-  const props = factories.agentOverviewProps.build();
+// cioJsClient is added after build(): fishery deep-copies params, and a new client object on every
+// render would start a new request on every render.
+function build(overrides: Partial<IAgentOverviewProps> = {}) {
+  return {
+    ...factories.agentOverviewProps.build({ apiKey: undefined, ...overrides }),
+    cioJsClient,
+  };
+}
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-    mockedCreateAgentStream.mockImplementation(
-      (_options: unknown, _intent: string, domain: string) => {
-        if (domain === 'searchbar_agent') {
-          return createFakeCategoryStream();
-        }
-        return createFakeProductStream();
+describe('useAgentOverview', () => {
+  afterEach(() => {
+    mockedStream.mockReset();
+  });
+
+  it('should stay idle for a blank query', () => {
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ query: '  ' }))
+    );
+    expect(result.current.status).toBe('idle');
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('should go loading, streaming, then done with the message and sections', async () => {
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() => useAgentOverview(build()));
+
+    expect(result.current.status).toBe('loading');
+    expect(mockedStream).toHaveBeenCalledWith(
+      cioJsClient,
+      { query: 'I want to buy casual style', pageContext: undefined },
+      expect.any(AbortSignal)
+    );
+
+    act(() => controlled.push(start));
+    await waitFor(() => expect(result.current.status).toBe('streaming'));
+    expect(result.current.resultId).toBe('r1');
+    expect(result.current.threadId).toBe('t1');
+
+    act(() => controlled.push(message('Here is a casual selection.')));
+    await waitFor(() =>
+      expect(result.current.message).toBe('Here is a casual selection.')
+    );
+
+    act(() => controlled.push(itemResults('Casual Shirt', 's1', ['Shirt'])));
+    await waitFor(() => expect(result.current.sections).toHaveLength(1));
+    expect(result.current.status).toBe('streaming');
+
+    act(() => controlled.push(itemResults('Casual Pants', 's2', ['Pants'])));
+    act(() => controlled.push(end));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections).toEqual([
+      {
+        title: 'Casual Shirt',
+        searchResultId: 's1',
+        products: [
+          expect.objectContaining({ itemName: 'Shirt', itemId: 'id-Shirt' }),
+        ],
+      },
+      {
+        title: 'Casual Pants',
+        searchResultId: 's2',
+        products: [expect.objectContaining({ itemName: 'Pants' })],
+      },
+    ]);
+  });
+
+  it('should join several messages with a blank line', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        message('One.'),
+        message('Two.'),
+        itemResults('A', 's1', ['a']),
+        end
+      )
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.message).toBe('One.\n\nTwo.');
+  });
+
+  it('should skip sets with no products a card can show', async () => {
+    const nameOnly = itemResults('Hidden', 's0', ['x']);
+    if (nameOnly.type === 'item_results') nameOnly.results = [{ value: 'x' }];
+    mockedStream.mockReturnValue(
+      streamOf(start, nameOnly, itemResults('Shown', 's1', ['a']), end)
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections.map((s) => s.title)).toEqual(['Shown']);
+  });
+
+  it('should be no-overview on a 422 and call onNoOverview once', async () => {
+    const onNoOverview = vi.fn();
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ callbacks: { onNoOverview } }))
+    );
+
+    act(() =>
+      controlled.fail(
+        new AgentInsightsRequestError(422, 'not suitable', {
+          code: 'client_error',
+        })
+      )
+    );
+    await waitFor(() => expect(result.current.status).toBe('no-overview'));
+    expect(onNoOverview).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('should be no-overview when the stream ends without products', async () => {
+    mockedStream.mockReturnValue(streamOf(start, message('Hmm.'), end));
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('no-overview'));
+  });
+
+  it('should be error on a 503 and call onError with status and code', async () => {
+    const onError = vi.fn();
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ callbacks: { onError } }))
+    );
+
+    act(() =>
+      controlled.fail(
+        new AgentInsightsRequestError(503, 'Upstream down', {
+          code: 'upstream_service_error',
+        })
+      )
+    );
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    const error = {
+      status: 503,
+      code: 'upstream_service_error',
+      message: 'Upstream down',
+    };
+    expect(result.current.error).toEqual(error);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
+  it('should be error with status 0 for a network failure', async () => {
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() => useAgentOverview(build()));
+    act(() => controlled.fail(new TypeError('Failed to fetch')));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toEqual({
+      status: 0,
+      message: 'Failed to fetch',
+    });
+  });
+
+  it('should keep products that arrived before a server_error and end done', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        itemResults('A', 's1', ['a']),
+        {
+          type: 'server_error',
+          resultId: 'r1',
+          statusCode: 500,
+          message: 'boom',
+        },
+        end
+      )
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections).toHaveLength(1);
+  });
+
+  it('should be error on a server_error with no products', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        {
+          type: 'server_error',
+          resultId: 'r1',
+          statusCode: 500,
+          message: 'boom',
+        },
+        end
+      )
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toEqual({ status: 500, message: 'boom' });
+  });
+
+  it('should ignore events from a superseded request', async () => {
+    const first = controlledStream();
+    const second = controlledStream();
+    mockedStream
+      .mockReturnValueOnce(first.stream)
+      .mockReturnValueOnce(second.stream);
+    const onNoOverview = vi.fn();
+    const { result, rerender } = renderHook(
+      (props) => useAgentOverview(props),
+      {
+        initialProps: build({ callbacks: { onNoOverview } }),
       }
     );
-  });
 
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
-  it('should return initial state with categories phase', async () => {
-    const { result } = renderHook(() => useAgentOverview(props));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1100);
-    });
-
-    expect(result.current.phase).toBe('categories');
-    expect(result.current.sections).toEqual([]);
-  });
-
-  it('should load categories from stream', async () => {
-    const { result } = renderHook(() => useAgentOverview(props));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1100);
-    });
-
-    expect(result.current.phase).toBe('categories');
-    expect(result.current.categories.length).toBeGreaterThan(0);
-    expect(result.current.categoryDescription).toBeTruthy();
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('should show skeleton for at least 1 second', async () => {
-    const { result } = renderHook(() => useAgentOverview(props));
-
-    // Before 1s, should still be loading
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
-    });
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.categories).toEqual([]);
-
-    // After 1s, categories should appear
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.categories.length).toBeGreaterThan(0);
-  });
-
-  it('should transition to products phase on selectCategory', async () => {
-    const { result } = renderHook(() => useAgentOverview(props));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1100);
-    });
-
-    const category = result.current.categories[0];
+    rerender(build({ query: 'gift for dad', callbacks: { onNoOverview } }));
     act(() => {
-      result.current.selectCategory(category);
+      first.push(start);
+      first.push(message('stale'));
+      first.push(itemResults('Stale', 's9', ['z']));
+      first.push(end);
     });
-
-    // Advance timers to let the polling interval resolve
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
-    });
-
-    expect(result.current.phase).toBe('products');
-  });
-
-  it('should populate sections with products after selecting a category', async () => {
-    const { result } = renderHook(() => useAgentOverview(props));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1100);
-    });
-
     act(() => {
-      result.current.selectCategory(result.current.categories[0]);
+      second.push(start);
+      second.push(message('fresh'));
+      second.push(itemResults('Fresh', 's1', ['a']));
+      second.push(end);
     });
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(200);
-    });
-
-    expect(result.current.sections.length).toBeGreaterThan(0);
-    expect(result.current.sections[0].title).toBe('Top Picks');
-    expect(result.current.sections[0].products).toHaveLength(1);
-    expect(result.current.sections[0].products[0].itemName).toBe('Shoe A');
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.message).toBe('fresh');
+    expect(result.current.sections.map((s) => s.title)).toEqual(['Fresh']);
+    expect(onNoOverview).not.toHaveBeenCalled();
   });
 
-  describe('error handling', () => {
-    it('should set error when category stream fails', async () => {
-      mockedCreateAgentStream.mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            throw new Error('Category stream failed');
-          }
-          return createFakeProductStream();
-        }
-      );
-
-      const { result } = renderHook(() => useAgentOverview(props));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(result.current.error).toBe('Category stream failed');
-      expect(result.current.categories).toEqual([]);
+  it('should abort the previous request when the query changes', () => {
+    mockedStream.mockImplementation(() => controlledStream().stream);
+    const { rerender } = renderHook((props) => useAgentOverview(props), {
+      initialProps: build(),
     });
+    const firstSignal = mockedStream.mock.calls[0][2]!;
 
-    it('should set error when product stream fails after category selection', async () => {
-      mockedCreateAgentStream.mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          throw new Error('Product stream failed');
-        }
-      );
+    rerender(build({ query: 'gift for dad' }));
 
-      const { result } = renderHook(() => useAgentOverview(props));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(result.current.categories.length).toBeGreaterThan(0);
-
-      act(() => {
-        result.current.selectCategory(result.current.categories[0]);
-      });
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(200);
-      });
-
-      expect(result.current.error).toBe('Product stream failed');
-    });
-
-    it('should set fallback error message for non-Error exceptions in categories', async () => {
-      mockedCreateAgentStream.mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            // eslint-disable-next-line @typescript-eslint/only-throw-error
-            throw 'string error';
-          }
-          return createFakeProductStream();
-        }
-      );
-
-      const { result } = renderHook(() => useAgentOverview(props));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(result.current.error).toBe('Failed to load categories');
-    });
+    expect(firstSignal.aborted).toBe(true);
+    expect(mockedStream).toHaveBeenCalledTimes(2);
   });
 
-  describe('cleanup on unmount', () => {
-    it('should not update state after unmount', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
-      const { unmount } = renderHook(() => useAgentOverview(props));
-
-      // Unmount before streams finish
-      unmount();
-
-      // Advance time past the minimum delay
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1500);
-      });
-
-      // No React "state update on unmounted component" warnings
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
+  it('should refetch when pageContext values change but not for a new equal object', () => {
+    mockedStream.mockImplementation(() => controlledStream().stream);
+    const { rerender } = renderHook((props) => useAgentOverview(props), {
+      initialProps: build({ pageContext: { searchTerm: 'a' } }),
     });
+    rerender(build({ pageContext: { searchTerm: 'a' } }));
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+    rerender(build({ pageContext: { searchTerm: 'b' } }));
+    expect(mockedStream).toHaveBeenCalledTimes(2);
   });
 
-  describe('null filtering', () => {
-    it('should filter out categories with missing imageUrl or blank or non-string title and trim titles', async () => {
-      mockedCreateAgentStream.mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return new ReadableStream({
-              start(controller) {
-                controller.enqueue({
-                  type: 'search_result',
-                  data: {
-                    title: '  Valid Category  ',
-                    response: {
-                      results: [
-                        {
-                          value: 'Valid',
-                          data: { image_url: 'https://example.com/valid.jpg' },
-                        },
-                      ],
-                    },
-                  },
-                });
-                controller.enqueue({
-                  type: 'search_result',
-                  data: {
-                    title: 'No Image',
-                    response: {
-                      results: [{ value: 'No Image', data: {} }],
-                    },
-                  },
-                });
-                controller.enqueue({
-                  type: 'search_result',
-                  data: {
-                    title: '',
-                    response: {
-                      results: [
-                        {
-                          value: 'Missing Title',
-                          data: { image_url: 'https://example.com/img.jpg' },
-                        },
-                      ],
-                    },
-                  },
-                });
-                controller.enqueue({
-                  type: 'search_result',
-                  data: {
-                    title: 7 as unknown as string,
-                    response: {
-                      results: [
-                        {
-                          value: 'Numeric Title',
-                          data: { image_url: 'https://example.com/img.jpg' },
-                        },
-                      ],
-                    },
-                  },
-                });
-                controller.enqueue({
-                  type: 'search_result',
-                  data: {
-                    title: '   ',
-                    response: {
-                      results: [
-                        {
-                          value: 'Blank Title',
-                          data: { image_url: 'https://example.com/img.jpg' },
-                        },
-                      ],
-                    },
-                  },
-                });
-                controller.close();
-              },
-            });
-          }
-          return createFakeProductStream();
-        }
-      );
-
-      const { result } = renderHook(() => useAgentOverview(props));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(result.current.categories).toHaveLength(1);
-      expect(result.current.categories[0].title).toBe('Valid Category');
+  it('should not refetch when only callbacks change', () => {
+    mockedStream.mockImplementation(() => controlledStream().stream);
+    const { rerender } = renderHook((props) => useAgentOverview(props), {
+      initialProps: build({ callbacks: { onError: vi.fn() } }),
     });
-
-    it('should filter out products with blank or non-string value or missing imageUrl and trim names', async () => {
-      mockedCreateAgentStream.mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return new ReadableStream({
-            start(controller) {
-              controller.enqueue({
-                type: 'group',
-                data: { title: 'Mixed', description: 'Some valid, some not' },
-              });
-              controller.enqueue({
-                type: 'search_result',
-                data: {
-                  title: '',
-                  response: {
-                    results: [
-                      {
-                        value: '  Good Product  ',
-                        data: {
-                          image_url: 'https://example.com/good.jpg',
-                          url: '/good',
-                          price: 50,
-                        },
-                      },
-                      {
-                        value: '   ',
-                        data: {
-                          image_url: 'https://example.com/blank.jpg',
-                          url: '/blank',
-                          price: 40,
-                        },
-                      },
-                      {
-                        value: 42 as unknown as string,
-                        data: {
-                          image_url: 'https://example.com/number.jpg',
-                          url: '/number',
-                          price: 10,
-                        },
-                      },
-                      {
-                        value: '',
-                        data: {
-                          image_url: 'https://example.com/no-name.jpg',
-                          url: '/no-name',
-                          price: 30,
-                        },
-                      },
-                      {
-                        value: 'No Image',
-                        data: { image_url: '', url: '/no-img', price: 20 },
-                      },
-                    ],
-                  },
-                },
-              });
-              controller.close();
-            },
-          });
-        }
-      );
-
-      const { result } = renderHook(() => useAgentOverview(props));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      act(() => {
-        result.current.selectCategory(result.current.categories[0]);
-      });
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(200);
-      });
-
-      expect(result.current.sections).toHaveLength(1);
-      expect(result.current.sections[0].products).toHaveLength(1);
-      expect(result.current.sections[0].products[0].itemName).toBe(
-        'Good Product'
-      );
-    });
-  });
-
-  describe('skip fetching', () => {
-    it('should not fetch when intent is empty', async () => {
-      mockedCreateAgentStream.mockClear();
-      const emptyProps = factories.agentOverviewProps.build({ intent: '' });
-      const { result } = renderHook(() => useAgentOverview(emptyProps));
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(result.current.categories).toEqual([]);
-      expect(result.current.isLoading).toBe(false);
-      expect(mockedCreateAgentStream).not.toHaveBeenCalled();
-    });
+    rerender(build({ callbacks: { onError: vi.fn() } }));
+    expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 });

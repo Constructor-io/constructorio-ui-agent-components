@@ -14,7 +14,7 @@ const meta: Meta<typeof CioAgentOverview> = {
     docs: {
       description: {
         component:
-          'Streams category suggestions for an `intent`, then product sections once one is chosen. The default export. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).',
+          'Streams the AI Overview for a `query`: a short summary, then the products picked for it. Renders nothing when the query gets no overview. The default export. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).',
       },
     },
   },

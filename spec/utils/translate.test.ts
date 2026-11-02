@@ -33,9 +33,14 @@ describe('translate', () => {
     );
     expect(translate('CioAgentOverview.section.viewMore')).toBe('View More');
     expect(translate('CioAgentOverview.skeleton.thinking')).toBe('Thinking');
-    expect(translate('CioAgentOverview.error.message')).toBe(
-      'Something went wrong. Please try again.'
-    );
+  });
+
+  it('has no defaults for the removed category and error keys', () => {
+    [
+      'CioAgentOverview.categories.viewSuggestions',
+      'CioAgentOverview.categories.carouselLabel',
+      'CioAgentOverview.error.message',
+    ].forEach((key) => expect(translate(key)).toBe(key));
   });
 
   it('returns custom translation when override is provided', () => {
@@ -70,11 +75,11 @@ describe('translate', () => {
 
   it('prefers custom translation over default', () => {
     const translations = {
-      'CioAgentOverview.categories.viewSuggestions': 'Show Suggestions',
+      'CioAgentOverview.skeleton.thinking': 'Loading',
     } as const;
 
-    expect(
-      translate('CioAgentOverview.categories.viewSuggestions', translations)
-    ).toBe('Show Suggestions');
+    expect(translate('CioAgentOverview.skeleton.thinking', translations)).toBe(
+      'Loading'
+    );
   });
 });

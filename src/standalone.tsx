@@ -57,7 +57,7 @@ const CioAgentOverview = (() => {
      * CioAgentOverview.init({
      *   selector: '#agent',
      *   apiKey: 'your-api-key',
-     *   domain: 'your-domain'
+     *   query: 'gift for my dad who loves grilling'
      * });
      * ```
      */
@@ -113,7 +113,7 @@ const CioAgentOverview = (() => {
      * @example
      * ```js
      * CioAgentOverview.update('#agent', {
-     *   domain: 'new-domain'
+     *   query: 'waterproof hiking boots'
      * });
      * ```
      */

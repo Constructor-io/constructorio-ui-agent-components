@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import CioAgentOverview from '@src/index';
 
-import { demoArgs } from '../fixtures';
+import { demoArgs, singleCategoryQuery } from '../fixtures';
 
 const meta: Meta<typeof CioAgentOverview> = {
   title: 'Agent Overview/Examples/Layout',
@@ -24,4 +24,10 @@ export const SmallContainer: Story = {
       </div>
     </div>
   ),
+};
+
+export const MultiCategory: Story = {};
+
+export const SingleCategory: Story = {
+  args: { query: singleCategoryQuery },
 };

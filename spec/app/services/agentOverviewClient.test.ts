@@ -1,95 +1,87 @@
 import ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
 
-import { createAgentStream } from '@src/app/services/agentOverviewClient';
+import { streamAgentInsights } from '@src/app/services/agentInsightsClient';
+import {
+  AGENT_OVERVIEW_CLIENT_TAG,
+  createAgentOverviewClient,
+  streamAgentOverview,
+} from '@src/app/services/agentOverviewClient';
 
 vi.mock('@constructor-io/constructorio-client-javascript', () => ({
   default: vi.fn(),
 }));
+vi.mock('@src/app/services/agentInsightsClient', () => ({
+  streamAgentInsights: vi.fn(),
+}));
 
 const MockedClient = vi.mocked(ConstructorIOClient);
+const mockedStream = vi.mocked(streamAgentInsights);
+const hostClient = { options: { apiKey: 'k', version: 'host' } } as never;
 
-describe('createAgentStream', () => {
+describe('agentOverviewClient', () => {
   afterEach(() => {
     MockedClient.mockReset();
+    mockedStream.mockReset();
   });
 
-  it('should throw if neither apiKey nor cioJsClient is provided', () => {
-    expect(() => createAgentStream({}, 'intent', 'domain')).toThrow(
-      'Either apiKey or cioJsClient must be provided'
-    );
-  });
-
-  it('should use cioJsClient when provided', () => {
-    const mockStream = new ReadableStream();
-    const mockClient = {
-      agent: {
-        getAgentResultsStream: vi.fn().mockReturnValue(mockStream),
-      },
-    };
-
-    const result = createAgentStream(
-      { cioJsClient: mockClient as never },
-      'buy shoes',
-      'example.com'
-    );
-
-    expect(mockClient.agent.getAgentResultsStream).toHaveBeenCalledWith(
-      'buy shoes',
-      { domain: 'example.com' }
-    );
-    expect(result).toBe(mockStream);
-    // Constructor should NOT be called when cioJsClient is provided
-    expect(MockedClient).not.toHaveBeenCalled();
-  });
-
-  it('should create a new client when apiKey is provided', () => {
-    const mockStream = new ReadableStream();
-    const mockGetStream = vi.fn().mockReturnValue(mockStream);
-
-    MockedClient.mockImplementation(function (this: unknown) {
-      (this as Record<string, unknown>).agent = {
-        getAgentResultsStream: mockGetStream,
-      };
-      return this as never;
+  describe('createAgentOverviewClient', () => {
+    it('should throw without apiKey or cioJsClient', () => {
+      expect(() => createAgentOverviewClient({})).toThrow(
+        'Either apiKey or cioJsClient must be provided'
+      );
     });
 
-    const result = createAgentStream(
-      { apiKey: 'test-key' },
-      'buy shoes',
-      'my-domain'
-    );
+    it('should use the host client when given', () => {
+      expect(
+        createAgentOverviewClient({ apiKey: 'other', cioJsClient: hostClient })
+      ).toBe(hostClient);
+      expect(MockedClient).not.toHaveBeenCalled();
+    });
 
-    expect(MockedClient).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: 'test-key',
+    it('should create a tracking-enabled client from apiKey', () => {
+      createAgentOverviewClient({ apiKey: 'k' });
+      expect(MockedClient).toHaveBeenCalledWith({
+        apiKey: 'k',
         sendTrackingEvents: true,
-      })
-    );
-    expect(mockGetStream).toHaveBeenCalledWith('buy shoes', {
-      domain: 'my-domain',
+        version: AGENT_OVERVIEW_CLIENT_TAG,
+      });
     });
-    expect(result).toBe(mockStream);
   });
 
-  it('should prefer cioJsClient over apiKey when both are provided', () => {
-    const mockStream = new ReadableStream();
-    const mockClient = {
-      agent: {
-        getAgentResultsStream: vi.fn().mockReturnValue(mockStream),
-      },
-    };
+  describe('streamAgentOverview', () => {
+    it('should send shopper_input and a plp page_context with the query as search_term', () => {
+      const signal = new AbortController().signal;
+      streamAgentOverview(hostClient, { query: 'gift for dad' }, signal);
 
-    const result = createAgentStream(
-      { apiKey: 'test-key', cioJsClient: mockClient as never },
-      'buy shoes',
-      'example.com'
-    );
+      expect(mockedStream).toHaveBeenCalledWith(
+        hostClient,
+        'search',
+        {
+          shopper_input: 'gift for dad',
+          page_context: { page_type: 'plp', search_term: 'gift for dad' },
+        },
+        { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal }
+      );
+    });
 
-    expect(mockClient.agent.getAgentResultsStream).toHaveBeenCalledWith(
-      'buy shoes',
-      { domain: 'example.com' }
-    );
-    expect(result).toBe(mockStream);
-    expect(MockedClient).not.toHaveBeenCalled();
+    it('should use pageContext when given', () => {
+      streamAgentOverview(hostClient, {
+        query: 'gift for dad',
+        pageContext: { pageType: 'collection', searchTerm: 'gifts' },
+      });
+
+      expect(mockedStream.mock.calls[0][2]).toEqual({
+        shopper_input: 'gift for dad',
+        page_context: { page_type: 'collection', search_term: 'gifts' },
+      });
+    });
+
+    it('should tag the request with the overview tag even on a host client', () => {
+      streamAgentOverview(hostClient, { query: 'q' });
+      expect(mockedStream.mock.calls[0][3]).toMatchObject({
+        clientTag: AGENT_OVERVIEW_CLIENT_TAG,
+      });
+      expect(AGENT_OVERVIEW_CLIENT_TAG).toMatch(/^cio-ui-agent-overview-/);
+    });
   });
 });
