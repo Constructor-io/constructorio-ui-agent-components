@@ -6,30 +6,16 @@ import type {
   IProduct,
   IRecommendationSection,
 } from '@src/types';
+import toProduct from '@src/utils/toProduct';
 
 import { createAgentStream } from '../services/agentOverviewClient';
 import { parseAgentStream } from '../services/agentStreamParser';
-import type {
-  AgentStreamResultItem,
-  AgentStreamSearchResultEvent,
-} from '../services/agentStreamTypes';
+import type { AgentStreamSearchResultEvent } from '../services/agentStreamTypes';
 type Phase = 'categories' | 'products';
 
 interface CategoriesResult {
   categories: ICategory[];
   description: string;
-}
-
-function toProduct(item: AgentStreamResultItem): IProduct | null {
-  const itemName = typeof item.value === 'string' ? item.value.trim() : '';
-  const imageUrl = item.data?.image_url ?? '';
-  if (!itemName || !imageUrl) return null;
-  return {
-    itemName,
-    imageUrl,
-    price: item.data?.price ?? 0,
-    url: item.data?.url ?? '',
-  };
 }
 
 function toProducts(event: AgentStreamSearchResultEvent): IProduct[] {

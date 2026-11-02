@@ -141,6 +141,10 @@ export interface IProduct {
   imageUrl: string;
   price: number;
   url: string;
+  /** The product's catalog id, when the response carries one. Sent with click tracking. */
+  itemId?: string;
+  /** The variation's catalog id, when the response carries one. Sent with click tracking. */
+  variationId?: string;
 }
 
 /** A group of recommended products with a title and description. */
