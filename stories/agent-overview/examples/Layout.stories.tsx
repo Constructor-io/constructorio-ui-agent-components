@@ -5,7 +5,7 @@ import CioAgentOverview from '@src/index';
 import { demoArgs } from '../fixtures';
 
 const meta: Meta<typeof CioAgentOverview> = {
-  title: 'Examples/Layout',
+  title: 'Agent Overview/Examples/Layout',
   component: CioAgentOverview,
   tags: ['!dev'],
   parameters: { a11y: { test: 'error' } },

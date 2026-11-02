@@ -23,14 +23,14 @@ export const argTypes: Partial<ArgTypes<IAgentOverviewProps>> = {
   cioJsClient: { control: false },
   theme: {
     description:
-      'CSS custom property overrides. See [Customization](?path=/docs/guides-customization--docs#theming).',
+      'CSS custom property overrides. See [Customization](?path=/docs/agent-overview-customization--docs#theming).',
   },
   callbacks: {
     control: false,
-    description: 'See [Callbacks](?path=/docs/guides-callbacks--docs).',
+    description: 'See [Callbacks](?path=/docs/agent-overview-callbacks--docs).',
   },
   translations: {
     description:
-      'UI string overrides. See [Customization](?path=/docs/guides-customization--docs#translations).',
+      'UI string overrides. See [Customization](?path=/docs/agent-overview-customization--docs#translations).',
   },
 };
