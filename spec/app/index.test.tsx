@@ -115,7 +115,10 @@ describe('CioAgentOverview', () => {
   it('should show the loading state inside the overview card with its badge', () => {
     mockedStream.mockReturnValue(controlledStream().stream);
     const { container } = renderOverview();
-    const card = find(container, '.cio-agent-overview-section');
+    const card = find(
+      container,
+      '.cio-agent-overview-section.cio-agent-overview-card'
+    );
     expect(card).toContainElement(screen.getByText('AI Overview'));
     expect(
       find(

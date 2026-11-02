@@ -50,7 +50,7 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
       style={buildThemeStyles(props.theme)}
     >
       {isOpen && (
-        <div className="cio-agent-overview-section">
+        <div className="cio-agent-overview-section cio-agent-overview-card">
           <span className="cio-agent-overview-badge">
             {translate('CioAgentOverview.badge', translations)}
           </span>
