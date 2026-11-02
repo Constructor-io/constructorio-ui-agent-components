@@ -199,6 +199,25 @@ describe('useAgentOverview', () => {
     expect(result.current.sections).toHaveLength(1);
   });
 
+  it('should keep products on screen when the connection drops mid-stream', async () => {
+    const onError = vi.fn();
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ callbacks: { onError } }))
+    );
+
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a']));
+      controlled.fail(new TypeError('network error'));
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections).toHaveLength(1);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('should be error on a server_error with no products', async () => {
     mockedStream.mockReturnValue(
       streamOf(
