@@ -39,7 +39,10 @@ export default function ProductCard({
       onClick={onClick}
     >
       {product.label?.trim() && (
-        <span className="cio-agent-overview-product-label">
+        <span
+          className="cio-agent-overview-product-label"
+          title={product.label}
+        >
           {product.label}
         </span>
       )}

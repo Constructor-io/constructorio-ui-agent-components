@@ -39,12 +39,15 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
   const hasContent = paragraphs.length > 0 || products.length > 0;
   const isOpen =
     status === 'loading' || status === 'streaming' || status === 'done';
-  // A first set of several products is a single-category overview: its title heads the row.
-  // Sets of one product are categories of a multi-category overview, labelled on each card.
   // Blanking a string is how a site hides it.
   const badge = translate('CioAgentOverview.badge', translations);
+  // Sets the API sent as one product are categories of a multi-category overview, each labelled
+  // on its card. A first set sent with several products is a single-category overview, headed by
+  // its title.
   const heading =
-    sections[0] && sections[0].products.length > 1 ? sections[0].title : '';
+    sections[0] && !sections[0].products.some((product) => product.label)
+      ? sections[0].title
+      : '';
 
   return (
     <div

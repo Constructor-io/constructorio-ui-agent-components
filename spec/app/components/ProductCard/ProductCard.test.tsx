@@ -40,6 +40,14 @@ describe('ProductCard', () => {
     expect(label.nextElementSibling).toBe(card);
   });
 
+  it('gives the label its full text as a tooltip, since long labels are cut short', () => {
+    render(<ProductCard product={{ ...product, label: 'Running shoes' }} />);
+    expect(screen.getByText('Running shoes')).toHaveAttribute(
+      'title',
+      'Running shoes'
+    );
+  });
+
   it('renders no label element without one', () => {
     const { container } = render(<ProductCard product={product} />);
     // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
