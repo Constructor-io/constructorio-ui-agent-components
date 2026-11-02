@@ -8,10 +8,6 @@
   overflow: hidden;
 }
 
-.cio-agent-overview-root:empty {
-  display: none;
-}
-
 .cio-agent-overview-message {
   font-family: var(--cio-font-family);
   font-size: var(--cio-font-size-base);
@@ -22,7 +18,7 @@
 }
 
 /* The overview card: outlined and lightly tinted with the accent colour, above the results. */
-.cio-agent-overview-root > .cio-agent-overview-section {
+.cio-agent-overview-section.cio-agent-overview-card {
   padding: var(--cio-spacing-lg);
   border: 2px solid var(--cio-color-hover-accent);
   border-radius: 8px;
@@ -47,13 +43,14 @@
 }
 
 /* The carousel injects padding-left equal to its slide gap on the track, which insets the
-   first card from the copy and the title. Three selectors outrank its two. */
-.cio-agent-overview-root .cio-agent-overview-carousel [data-slot='carousel-track'] {
+   first card from the copy and the title. Three selectors outrank its two (four once the
+   build prefixes the root class). */
+.cio-agent-overview-card .cio-agent-overview-carousel [data-slot='carousel-track'] {
   padding-left: 0;
 }
 
 /* The loading placeholder sits inside the card, which already pads and frames it. */
-.cio-agent-overview-section .cio-agent-overview-skeleton-section {
+.cio-agent-overview-card .cio-agent-overview-skeleton-section {
   padding: 0;
   border-bottom: 0;
 }
