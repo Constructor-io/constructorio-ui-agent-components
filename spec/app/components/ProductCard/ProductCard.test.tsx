@@ -28,6 +28,18 @@ describe('ProductCard', () => {
     );
   });
 
+  it('places the label above the card, outside it', () => {
+    const { container } = render(
+      <ProductCard product={{ ...product, label: 'Running shoes' }} />
+    );
+    const label = screen.getByText('Running shoes');
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    const card = container.querySelector('.cio-product-card');
+    expect(card).not.toContainElement(label);
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(label.nextElementSibling).toBe(card);
+  });
+
   it('renders no label element without one', () => {
     const { container } = render(<ProductCard product={product} />);
     // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
