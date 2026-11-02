@@ -41,6 +41,11 @@ export default function ProductCard({
       <CioProductCard product={libraryProduct}>
         <CioProductCard.ImageSection />
         <CioProductCard.Content>
+          {product.label?.trim() && (
+            <span className="cio-agent-overview-product-label">
+              {product.label}
+            </span>
+          )}
           <CioProductCard.PriceSection />
           <CioProductCard.TitleSection />
         </CioProductCard.Content>

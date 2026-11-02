@@ -41,6 +41,8 @@ export default function SearchResultsPage({ searchResponse }) {
 
 <Canvas of={LayoutStories.MultiCategory} />
 
+A search for one kind of product gets one row of products under a heading. A search that spans several, such as a gift or a routine, gets one product per category, each card labelled with its category, as above.
+
 The component finds the promise whose `pod.id` is `search_ai_overview` and sends its `body`, unchanged, to its `callback_url`. Search wrote both for the query, filters and shopper it served, and the URL already carries your key and the shopper's identity, so there's nothing else to pass. Render your results as soon as search returns: the overview never holds them up.
 
 Pass each new search response's `agentic_promises`. A new search, or a filter that sends a new promise, aborts the overview still streaming, so an old overview never lands on new results.

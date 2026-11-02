@@ -11,6 +11,7 @@ import type {
 import toProduct from '@src/utils/toProduct';
 
 import { AgentInsightsRequestError } from '../services/agentInsightsClient';
+import type { AgentInsightsEvent } from '../services/agentInsightsTypes';
 import {
   findAiOverviewPromise,
   streamAgentOverview,
@@ -63,6 +64,27 @@ function toError(err: unknown): IAgentOverviewError {
   return {
     status: 0,
     message: err instanceof Error ? err.message : String(err),
+  };
+}
+
+/** A product set from one `item_results` event, or null when none of its products can be shown. */
+function toSection(
+  event: Extract<AgentInsightsEvent, { type: 'item_results' }>
+): IAgentOverviewSection | null {
+  const products = event.results
+    .map(toProduct)
+    .filter((product): product is IProduct => product !== null);
+  if (products.length === 0) return null;
+  const title = event.title.trim();
+  // A one-product set is one category of a multi-category overview: label the card with it.
+  const labelled =
+    products.length === 1 && title
+      ? [{ ...products[0], label: title }]
+      : products;
+  return {
+    title,
+    ...(event.searchResultId && { searchResultId: event.searchResultId }),
+    products: labelled,
   };
 }
 
@@ -162,17 +184,9 @@ export default function useAgentOverview(
           messages.push(event.text);
           update({ message: messages.join('\n\n') });
         } else if (event.type === 'item_results') {
-          const products = event.results
-            .map(toProduct)
-            .filter((product): product is IProduct => product !== null);
-          if (products.length > 0) {
-            sections.push({
-              title: event.title.trim(),
-              ...(event.searchResultId && {
-                searchResultId: event.searchResultId,
-              }),
-              products,
-            });
+          const section = toSection(event);
+          if (section) {
+            sections.push(section);
             update({ sections: [...sections] });
           }
         } else if (event.type === 'server_error') {
