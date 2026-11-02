@@ -25,9 +25,11 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 3. **Expect nothing for some searches.** Simple keyword searches, such as a brand, get no overview, and the component renders nothing. So does a failed request. `callbacks.onNoOverview` and `callbacks.onError` tell you when. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
 
-4. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
+4. **Check tracking.** The component sends the AI Overview's events itself. If you pass your own `cioJsClient`, create it with `sendTrackingEvents: true`. See [Tracking](?path=/docs/agent-overview-tracking--docs).
 
-5. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+5. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
+
+6. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ## Page context
 

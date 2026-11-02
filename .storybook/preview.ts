@@ -14,6 +14,7 @@ const preview: Preview = {
             'Callbacks',
             'Customization',
             'Custom UI',
+            'Tracking',
             'Components & Utilities',
             [
               'CioAgentOverview',

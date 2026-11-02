@@ -7,8 +7,16 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 Streams the AI Overview for a search. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); it uses `apiKey`, `cioJsClient`, `query`, `pageContext`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ```js
-const { status, message, sections, resultId, threadId, error } =
-  useAgentOverview(props);
+const {
+  status,
+  message,
+  sections,
+  resultId,
+  threadId,
+  error,
+  viewRef,
+  trackProductClick,
+} = useAgentOverview(props);
 ```
 
 <Markdown>
@@ -21,6 +29,8 @@ const { status, message, sections, resultId, threadId, error } =
 | \`resultId\` | \`string \\| null\` | The overview's id, once the stream opens |
 | \`threadId\` | \`string \\| null\` | The conversation thread the overview opened, if any |
 | \`error\` | \`IAgentOverviewError \\| null\` | \`{ status, code, message }\` when \`status\` is \`error\` |
+| \`viewRef\` | \`(node) => void\` | Attach to the element showing the products to send view events. See [Tracking](?path=/docs/agent-overview-tracking--docs) |
+| \`trackProductClick\` | \`(product, section) => void\` | Sends a product's click event |
 `}
 </Markdown>
 

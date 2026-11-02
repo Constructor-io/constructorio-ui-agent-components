@@ -15,7 +15,7 @@ import {
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
 function MyAgentOverview({ query }) {
-  const { status, message, sections } = useAgentOverview({
+  const { status, message, sections, viewRef } = useAgentOverview({
     apiKey: 'YOUR_API_KEY',
     query,
   });
@@ -24,7 +24,7 @@ function MyAgentOverview({ query }) {
   if (status !== 'streaming' && status !== 'done') return null;
 
   return (
-    <div className="cio-agent-overview-root">
+    <div className="cio-agent-overview-root" ref={viewRef}>
       <p>{message}</p>
       <ProductCarousel
         products={sections.flatMap((section) => section.products)}
@@ -34,6 +34,6 @@ function MyAgentOverview({ query }) {
 }
 ```
 
-The hook calls `callbacks.onNoOverview` and `callbacks.onError`, and ignores `theme`, `translations` and the other callbacks; pass them to the [components](?path=/docs/agent-overview-components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
+The hook sends the tracking events, with `viewRef` attached and `trackProductClick` called on clicks (see [Tracking](?path=/docs/agent-overview-tracking--docs)). It calls `callbacks.onNoOverview` and `callbacks.onError`, and ignores `theme`, `translations` and the other callbacks; pass them to the [components](?path=/docs/agent-overview-components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
 
 <Canvas of={HeadlessStories.Default} />
