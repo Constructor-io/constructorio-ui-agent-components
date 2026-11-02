@@ -35,6 +35,10 @@ describe('translate', () => {
     expect(translate('CioAgentOverview.skeleton.thinking')).toBe('Thinking');
   });
 
+  it('names the overview badge AI Overview', () => {
+    expect(translate('CioAgentOverview.badge')).toBe('AI Overview');
+  });
+
   it('has no defaults for the removed category and error keys', () => {
     [
       'CioAgentOverview.categories.viewSuggestions',

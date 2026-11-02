@@ -1,6 +1,7 @@
 import type { Translations } from '../types';
 
 const defaultTranslations: Translations = {
+  'CioAgentOverview.badge': 'AI Overview',
   'CioAgentOverview.section.aiBadge': 'Generated with AI',
   'CioAgentOverview.section.viewMore': 'View More',
   'CioAgentOverview.skeleton.thinking': 'Thinking',

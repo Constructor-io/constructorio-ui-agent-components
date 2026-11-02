@@ -76,7 +76,9 @@ describe('CioAgentOverview', () => {
     expect(await screen.findByText('A casual selection.')).toHaveClass(
       'cio-agent-overview-message'
     );
-    expect(screen.getByText('Generated with AI')).toBeInTheDocument();
+    expect(screen.getByText('AI Overview')).toHaveClass(
+      'cio-agent-overview-badge'
+    );
     // Products are still on their way: a carousel placeholder holds their place.
     expect(
       find(
@@ -108,6 +110,56 @@ describe('CioAgentOverview', () => {
     expect(
       find(container, '.cio-agent-overview-skeleton-section')
     ).not.toBeInTheDocument();
+  });
+
+  it('should show the loading state inside the overview card with its badge', () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const { container } = renderOverview();
+    const card = find(container, '.cio-agent-overview-section');
+    expect(card).toContainElement(screen.getByText('AI Overview'));
+    expect(
+      find(
+        container,
+        '.cio-agent-overview-section .cio-agent-overview-skeleton-section'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('should head a single-category overview with its set title', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        message('Shirts.'),
+        itemResults('Summer Shirts', 's1', ['a', 'b']),
+        end
+      )
+    );
+    renderOverview();
+    expect(
+      await screen.findByRole('heading', { name: 'Summer Shirts' })
+    ).toHaveClass('cio-agent-overview-section-title');
+  });
+
+  it('should not head a multi-category overview', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        itemResults('Shirt', 's1', ['a']),
+        itemResults('Pants', 's2', ['b']),
+        end
+      )
+    );
+    renderOverview();
+    await screen.findAllByRole('link');
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  it('should take the badge text from translations', () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    renderOverview({
+      translations: { 'CioAgentOverview.badge': 'AI summary' },
+    });
+    expect(screen.getByText('AI summary')).toBeInTheDocument();
   });
 
   it('should split the message into paragraphs', async () => {
