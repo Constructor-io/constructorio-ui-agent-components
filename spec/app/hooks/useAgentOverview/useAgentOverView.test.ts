@@ -91,6 +91,26 @@ describe('useAgentOverview', () => {
     ]);
   });
 
+  it('should label the product of a one-product set with its title', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('Casual Shirt', 's1', ['Shirt']), end)
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections[0].products[0].label).toBe('Casual Shirt');
+  });
+
+  it('should not label sets of several products', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('Summer Shirts', 's1', ['a', 'b']), end)
+    );
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(
+      result.current.sections[0].products.map((product) => product.label)
+    ).toEqual([undefined, undefined]);
+  });
+
   it('should join several messages with a blank line', async () => {
     mockedStream.mockReturnValue(
       streamOf(

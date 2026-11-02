@@ -11,3 +11,11 @@
 .cio-agent-overview-product-card > .cio-product-card {
   flex: 1;
 }
+
+.cio-agent-overview-product-label {
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-xs);
+  font-weight: var(--cio-font-weight-medium);
+  color: var(--cio-color-muted);
+  line-height: var(--cio-line-height);
+}

@@ -177,6 +177,8 @@ export interface IProduct {
   itemId?: string;
   /** The variation's catalog id, when the response carries one. Sent with click tracking. */
   variationId?: string;
+  /** A short label shown on the card, such as the category a product was picked for. */
+  label?: string;
 }
 
 /** A group of recommended products with a title and description. */

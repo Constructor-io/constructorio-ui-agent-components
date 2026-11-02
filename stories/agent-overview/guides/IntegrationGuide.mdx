@@ -19,6 +19,8 @@ import { Meta } from '@storybook/addon-docs/blocks';
    <CioAgentOverview apiKey="YOUR_API_KEY" query={searchQuery} />;
    ```
 
+   A search for one kind of product gets one row of products. A search that spans several, such as a gift or a routine, gets one product per category, each card labelled with its category.
+
    The overview comes from `POST /v1/agent_insights/search`. Ask your Integration Engineer to turn AI Overview on for your index. A blank `query` makes no request, and a new `query` starts over.
 
 3. **Expect nothing for some searches.** Simple keyword searches, such as a brand, get no overview, and the component renders nothing. So does a failed request. `callbacks.onNoOverview` and `callbacks.onError` tell you when. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).

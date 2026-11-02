@@ -204,6 +204,24 @@ describe('CioAgentOverview', () => {
     await waitFor(() => expect(card()).toHaveAttribute('aria-busy', 'false'));
   });
 
+  it('should show each category label in a multi-category answer', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        itemResults('Casual Shirt', 's1', ['Shirt']),
+        itemResults('Casual Pants', 's2', ['Pants']),
+        end
+      )
+    );
+    renderOverview();
+    expect(await screen.findByText('Casual Shirt')).toHaveClass(
+      'cio-agent-overview-product-label'
+    );
+    expect(screen.getByText('Casual Pants')).toHaveClass(
+      'cio-agent-overview-product-label'
+    );
+  });
+
   it('should split the message into paragraphs', async () => {
     mockedStream.mockReturnValue(
       streamOf(
