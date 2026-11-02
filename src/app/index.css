@@ -17,20 +17,21 @@
   margin: 0 0 var(--cio-spacing-lg);
 }
 
-/* The overview card: outlined and lightly tinted with the accent colour, above the results. */
+/* The overview card, set apart from the results in neutral colours that suit any site. */
 .cio-agent-overview-section.cio-agent-overview-card {
   padding: var(--cio-spacing-lg);
-  border: 2px solid var(--cio-color-hover-accent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--cio-color-hover-accent) 6%, transparent);
+  border: 1px solid var(--cio-color-border);
+  border-radius: 12px;
+  background: var(--cio-color-background-muted);
 }
 
 .cio-agent-overview-badge {
   align-self: flex-start;
   margin-bottom: var(--cio-spacing-lg);
   padding: var(--cio-spacing-xs) 10px;
+  border: 1px solid var(--cio-color-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--cio-color-hover-accent) 16%, transparent);
+  background: var(--cio-color-background);
   font-family: var(--cio-font-family);
   font-size: var(--cio-font-size-xs);
   font-weight: var(--cio-font-weight-semibold);
