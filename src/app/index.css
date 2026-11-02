@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--cio-spacing-2xl);
+  /* Fill the container's width, in a flex parent too. */
+  width: 100%;
   min-width: 0;
   overflow: hidden;
 }
@@ -16,5 +18,42 @@
   font-weight: var(--cio-font-weight-normal);
   color: var(--cio-color-primary);
   line-height: var(--cio-line-height);
-  margin: 0 0 var(--cio-spacing-xl);
+  margin: 0 0 var(--cio-spacing-lg);
+}
+
+/* The overview card: outlined and lightly tinted with the accent colour, above the results. */
+.cio-agent-overview-root > .cio-agent-overview-section {
+  padding: var(--cio-spacing-lg);
+  border: 2px solid var(--cio-color-hover-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cio-color-hover-accent) 6%, transparent);
+}
+
+.cio-agent-overview-badge {
+  align-self: flex-start;
+  margin-bottom: var(--cio-spacing-lg);
+  padding: var(--cio-spacing-xs) 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cio-color-hover-accent) 16%, transparent);
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-xs);
+  font-weight: var(--cio-font-weight-semibold);
+  color: var(--cio-color-primary);
+  line-height: var(--cio-line-height);
+}
+
+.cio-agent-overview-title {
+  margin-bottom: var(--cio-spacing-md);
+}
+
+/* The carousel injects padding-left equal to its slide gap on the track, which insets the
+   first card from the copy and the title. Three selectors outrank its two. */
+.cio-agent-overview-root .cio-agent-overview-carousel [data-slot='carousel-track'] {
+  padding-left: 0;
+}
+
+/* The loading placeholder sits inside the card, which already pads and frames it. */
+.cio-agent-overview-section .cio-agent-overview-skeleton-section {
+  padding: 0;
+  border-bottom: 0;
 }

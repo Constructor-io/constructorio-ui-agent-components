@@ -6,13 +6,12 @@ import type {
 import buildThemeStyles from '../utils/theme';
 import translate, { translateLabel } from '../utils/translate';
 
-import SparkleSVG from './components/icons/SparkleSVG';
 import ProductCarousel from './components/ProductCarousel/ProductCarousel';
 import Skeleton from './components/Skeleton/Skeleton';
 import useAgentOverview from './hooks/useAgentOverview';
 
 import '../styles.css';
-// The section, badge and description styles the overview shares with RecommendationSection.
+// The section and title styles the overview shares with RecommendationSection.
 import './components/RecommendationSection/RecommendationSection.css';
 import './index.css';
 
@@ -38,38 +37,43 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
     )
   );
   const hasContent = paragraphs.length > 0 || products.length > 0;
-  const showOverview =
-    (status === 'streaming' || status === 'done') && hasContent;
+  const isOpen =
+    status === 'loading' || status === 'streaming' || status === 'done';
+  // A first set of several products is a single-category overview: its title heads the row.
+  // Sets of one product are categories of a multi-category overview, labelled on each card.
+  const heading =
+    sections[0] && sections[0].products.length > 1 ? sections[0].title : '';
 
   return (
     <div
       className="cio-agent-overview-root"
       style={buildThemeStyles(props.theme)}
     >
-      {(status === 'loading' || (status === 'streaming' && !hasContent)) && (
-        <Skeleton
-          rows={1}
-          showTitle={false}
-          cards={4}
-          translations={translations}
-        />
-      )}
-      {showOverview && (
+      {isOpen && (
         <div className="cio-agent-overview-section">
-          <div className="cio-agent-overview-section-badge">
-            <SparkleSVG />
-            <span>
-              {translate('CioAgentOverview.section.aiBadge', translations)}
-            </span>
-          </div>
+          <span className="cio-agent-overview-badge">
+            {translate('CioAgentOverview.badge', translations)}
+          </span>
+          {!hasContent && (
+            <Skeleton
+              rows={1}
+              showTitle={false}
+              cards={4}
+              translations={translations}
+            />
+          )}
           {paragraphs.map((text, index) => (
             // Paragraphs only ever append, so the index is a stable key.
-
             <p key={index} className="cio-agent-overview-message">
               {text}
             </p>
           ))}
-          {products.length > 0 ? (
+          {heading && (
+            <h2 className="cio-agent-overview-section-title cio-agent-overview-title">
+              {heading}
+            </h2>
+          )}
+          {products.length > 0 && (
             <ProductCarousel
               products={products}
               label={translateLabel(
@@ -89,7 +93,8 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
                   : undefined
               }
             />
-          ) : (
+          )}
+          {hasContent && products.length === 0 && (
             <div
               className="cio-agent-overview-skeleton-products"
               aria-hidden="true"

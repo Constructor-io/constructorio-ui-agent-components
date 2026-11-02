@@ -28,3 +28,8 @@
 .cio-agent-overview-carousel-content {
   padding-left: 0;
 }
+
+/* The shared carousel centres each item vertically; stretch them so cards line up. */
+.cio-agent-overview-carousel-content > * {
+  align-items: stretch;
+}

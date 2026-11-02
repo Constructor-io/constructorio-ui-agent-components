@@ -4,4 +4,10 @@
   text-decoration: none;
   color: inherit;
   cursor: pointer;
+  height: 100%;
+}
+
+/* Fill the carousel slot, so every card in a row is as tall as the tallest. */
+.cio-agent-overview-product-card > .cio-product-card {
+  flex: 1;
 }

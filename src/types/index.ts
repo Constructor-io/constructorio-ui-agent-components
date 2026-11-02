@@ -92,6 +92,7 @@ export interface IAgentOverviewCallbacks {
  * All keys are optional — any non-provided translation will fall back to the English default.
  */
 export type Translations = {
+  'CioAgentOverview.badge'?: string;
   'CioAgentOverview.section.aiBadge'?: string;
   'CioAgentOverview.section.viewMore'?: string;
   'CioAgentOverview.skeleton.thinking'?: string;
