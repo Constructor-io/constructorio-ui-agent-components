@@ -15,10 +15,13 @@ import {
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
 function MyAgentOverview({ query }) {
-  const { status, message, sections, viewRef } = useAgentOverview({
-    apiKey: 'YOUR_API_KEY',
-    query,
-  });
+  const { status, message, sections, viewRef, trackProductClick } =
+    useAgentOverview({
+      apiKey: 'YOUR_API_KEY',
+      query,
+    });
+  const sectionOf = (product) =>
+    sections.find((section) => section.products.includes(product));
 
   if (status === 'loading') return <p>Loading…</p>;
   if (status !== 'streaming' && status !== 'done') return null;
@@ -28,6 +31,9 @@ function MyAgentOverview({ query }) {
       <p>{message}</p>
       <ProductCarousel
         products={sections.flatMap((section) => section.products)}
+        onProductClick={(event, product) =>
+          trackProductClick(product, sectionOf(product))
+        }
       />
     </div>
   );
