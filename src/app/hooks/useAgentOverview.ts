@@ -97,8 +97,10 @@ export default function useAgentOverview(
       if (isCurrent()) setState((prev) => ({ ...prev, ...patch }));
     };
 
+    // Outside run() so a stream that breaks off can still finish with what already arrived.
+    const sections: IAgentOverviewSection[] = [];
+
     async function run() {
-      const sections: IAgentOverviewSection[] = [];
       const messages: string[] = [];
       let serverError: IAgentOverviewError | null = null;
 
@@ -158,6 +160,11 @@ export default function useAgentOverview(
 
     run().catch((err: unknown) => {
       if (!isCurrent() || isAbort(err)) return;
+      // The connection dropped after products were shown: keep them.
+      if (sections.length > 0) {
+        update({ status: 'done' });
+        return;
+      }
       if (
         err instanceof AgentInsightsRequestError &&
         err.status === NO_OVERVIEW_STATUS
