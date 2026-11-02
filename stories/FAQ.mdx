@@ -14,8 +14,8 @@ Your bundler can't parse the ESNext build. Resolve the package with `require` to
 
 ## Agent Overview: nothing renders
 
-No request is made until `intent`, `domains.suggestions` and `domains.results` are all set. Pass `apiKey` or `cioJsClient` too.
+Simple keyword searches, such as a brand or a product name, get no overview, and the component renders nothing; `callbacks.onNoOverview` is called. A failed request also renders nothing and calls `callbacks.onError`. A blank `query` makes no request. Check too that AI Overview is turned on for your index, and that you pass `apiKey` or `cioJsClient`.
 
 ## Agent Overview: it keeps reloading
 
-A new `domains` object restarts the stream, and an inline `domains={{ … }}` is a new object on every render. Define it outside your component, or memoize it. The same goes for `cioJsClient`.
+A new `query`, `pageContext` value or `cioJsClient` starts a new request. Create `cioJsClient` once, outside your component, or memoize it.

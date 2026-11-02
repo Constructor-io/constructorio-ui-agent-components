@@ -12,11 +12,10 @@ import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/
 CioAgentOverview.init({
   selector: '#agent-overview',
   apiKey: 'YOUR_API_KEY',
-  intent,
-  domains,
+  query: 'gift for my dad who loves grilling',
 });
 CioAgentOverview.update('#agent-overview', {
-  intent: 'Show me summer dresses',
+  query: 'summer dresses for a beach wedding',
 });
 CioAgentOverview.destroy('#agent-overview');
 ```

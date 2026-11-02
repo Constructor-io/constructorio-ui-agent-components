@@ -10,31 +10,34 @@ import { Meta } from '@storybook/addon-docs/blocks';
    npm install @constructor-io/constructorio-ui-agent-components
    ```
 
-2. **Render it** with the shopper's intent, usually their search query.
+2. **Render it** above your search results with the shopper's search.
 
    ```jsx
    import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
    import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-   const domains = {
-     suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
-     results: 'YOUR_RESULTS_DOMAIN',
-   };
-
-   <CioAgentOverview apiKey="YOUR_API_KEY" intent={query} domains={domains} />;
+   <CioAgentOverview apiKey="YOUR_API_KEY" query={searchQuery} />;
    ```
 
-   Ask your Integration Engineer for the domains. Nothing is requested until `intent` and both domains are set. A new `intent` or `domains` object starts over, so define `domains` outside your component, or memoize it.
+   The overview comes from `POST /v1/agent_insights/search`. Ask your Integration Engineer to turn AI Overview on for your index. A blank `query` makes no request, and a new `query` starts over.
 
-3. **Link the sections.** Without `getViewMoreUrl`, sections have no "View more" link. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
-
-   ```jsx
-   callbacks={{ getViewMoreUrl: (section) => `/search?q=${encodeURIComponent(section.title)}` }}
-   ```
+3. **Expect nothing for some searches.** Simple keyword searches, such as a brand, get no overview, and the component renders nothing. So does a failed request. `callbacks.onNoOverview` and `callbacks.onError` tell you when. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
 
 4. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
 
 5. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+
+## Page context
+
+The overview assumes a search results page for `query`. Set `pageContext` when it isn't one:
+
+```jsx
+<CioAgentOverview
+  apiKey="YOUR_API_KEY"
+  query={searchQuery}
+  pageContext={{ pageType: 'collection', searchTerm: 'summer' }}
+/>
+```
 
 ## Without React
 
@@ -46,11 +49,7 @@ import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/
 CioAgentOverview.init({
   selector: '#agent-overview',
   apiKey: 'YOUR_API_KEY',
-  intent: 'I want to buy shoes',
-  domains: {
-    suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
-    results: 'YOUR_RESULTS_DOMAIN',
-  },
+  query: 'gift for my dad who loves grilling',
 });
 ```
 

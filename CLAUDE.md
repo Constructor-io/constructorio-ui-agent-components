@@ -1,8 +1,9 @@
 # constructorio-ui-agent-components
 
 Library of embeddable React components for Constructor's agentic experiences.
-Its first component, Agent Overview, streams AI-generated category suggestions
-and product recommendation sections for a shopping intent. It is published to
+Its first component, Agent Overview, streams the AI Overview for a search (a
+short summary and the products picked for it) from `/v1/agent_insights/search`,
+above a search results page. It is published to
 npm and runs inside a customer's site, so it is a guest on a page it does not own.
 
 ## Documentation

@@ -4,32 +4,24 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 # useAgentOverview
 
-Fetches and streams the agent's state. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); only `apiKey`, `cioJsClient`, `intent` and `domains` are used. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+Streams the AI Overview for a search. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); it uses `apiKey`, `cioJsClient`, `query`, `pageContext`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ```js
-const {
-  phase,
-  categories,
-  categoryDescription,
-  sections,
-  selectCategory,
-  isLoading,
-  error,
-} = useAgentOverview(props);
+const { status, message, sections, resultId, threadId, error } =
+  useAgentOverview(props);
 ```
 
 <Markdown>
   {`
 | Returns | Type | |
 |---|---|---|
-| \`phase\` | \`'categories' \\| 'products'\` | Starts at \`'categories'\` |
-| \`categories\` | \`ICategory[]\` | \`{ title, imageUrl }\` |
-| \`categoryDescription\` | \`string\` | Shown above the categories |
-| \`sections\` | \`IRecommendationSection[]\` | \`{ title, description, products }\`. Empty until \`phase\` is \`'products'\` |
-| \`selectCategory\` | \`(category) => void\` | Moves to \`'products'\`. The sections don't depend on which category |
-| \`isLoading\` | \`boolean\` | While categories load, then while products finish streaming |
-| \`error\` | \`string \\| null\` | The error message |
+| \`status\` | \`'idle' \\| 'loading' \\| 'streaming' \\| 'done' \\| 'no-overview' \\| 'error'\` | \`idle\` without a query; \`loading\` until the stream opens; \`streaming\` while it arrives |
+| \`message\` | \`string\` | The overview's text. Several messages are joined with a blank line |
+| \`sections\` | \`IAgentOverviewSection[]\` | \`{ title, searchResultId, products }\`, one per product set, in the order they arrived |
+| \`resultId\` | \`string \\| null\` | The overview's id, once the stream opens |
+| \`threadId\` | \`string \\| null\` | The conversation thread the overview opened, if any |
+| \`error\` | \`IAgentOverviewError \\| null\` | \`{ status, code, message }\` when \`status\` is \`error\` |
 `}
 </Markdown>
 
-Products stream while the shopper picks a category, so they usually show at once. `viewMoreUrl` is never set on a section by the hook; add it yourself.
+The message usually arrives before the products. A set whose products have no name or image is left out. If the stream fails after some products arrived, `status` is `done` with those products.
