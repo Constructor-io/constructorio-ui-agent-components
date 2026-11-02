@@ -165,6 +165,45 @@ describe('CioAgentOverview', () => {
     expect(screen.getByText('AI summary')).toBeInTheDocument();
   });
 
+  it('should render nothing, without throwing, when query is missing', () => {
+    const { container } = renderOverview({
+      query: undefined as unknown as string,
+    });
+    expect(root(container)).toBeEmptyDOMElement();
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('should render products that share a URL as separate cards', async () => {
+    const shared = itemResults('Shirt', 's1', ['Shirt']);
+    const again = itemResults('Shirts again', 's2', ['Shirt']);
+    mockedStream.mockReturnValue(streamOf(start, shared, again, end));
+    renderOverview();
+    await waitFor(() => expect(screen.getAllByRole('link')).toHaveLength(2));
+  });
+
+  it('should leave out the badge when its translation is blank', () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const { container } = renderOverview({
+      translations: { 'CioAgentOverview.badge': '' },
+    });
+    expect(find(container, '.cio-agent-overview-badge')).toBeNull();
+  });
+
+  it('should mark the card busy until the overview has finished', async () => {
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { container } = renderOverview();
+    const card = () => find(container, '.cio-agent-overview-card');
+    expect(card()).toHaveAttribute('aria-busy', 'true');
+
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a']));
+      controlled.push(end);
+    });
+    await waitFor(() => expect(card()).toHaveAttribute('aria-busy', 'false'));
+  });
+
   it('should split the message into paragraphs', async () => {
     mockedStream.mockReturnValue(
       streamOf(

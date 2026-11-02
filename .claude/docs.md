@@ -41,7 +41,7 @@ Docs, snippets and stories import from `@src`, never from internal paths.
 ## Writing
 
 - Brief. Lead with the snippet; one sentence per idea; no "This page covers…".
-- Name the prop path exactly (`callbacks.getViewMoreUrl`).
+- Name the prop path exactly (`callbacks.onNoOverview`).
 - Every snippet must work if copied.
 - A new translation key or theme property goes in its table in the
   component's Customization guide.

@@ -11,9 +11,9 @@ export default function HeadlessTemplate(args: IAgentOverviewProps) {
     <section aria-label="AI Overview">
       <p>{message}</p>
       <ul>
-        {sections.flatMap((section) =>
-          section.products.map((product) => (
-            <li key={product.url}>
+        {sections.flatMap((section, sectionIndex) =>
+          section.products.map((product, index) => (
+            <li key={`${sectionIndex}-${index}`}>
               <a href={product.url}>{product.itemName}</a> ${product.price}
             </li>
           ))
