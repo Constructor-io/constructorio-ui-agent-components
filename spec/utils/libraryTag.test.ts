@@ -45,6 +45,26 @@ describe('withLibraryTag', () => {
     expect(body.c).toBe(LIBRARY_TAG);
   });
 
+  it('sends events with a given tag', () => {
+    withLibraryTag(client.tracker, 'cio-ui-agent-overview-x').trackAgentSubmit({
+      intent: 'shirts',
+    });
+
+    const { query, body } = lastEvent();
+    expect(query.get('c')).toBe('cio-ui-agent-overview-x');
+    expect(body.c).toBe('cio-ui-agent-overview-x');
+  });
+
+  it('leaves a tracker already carrying the given tag as it is', () => {
+    const tagged = new ConstructorIOClient({
+      apiKey: DEMO_API_KEY,
+      version: 'cio-ui-agent-overview-x',
+    });
+    expect(withLibraryTag(tagged.tracker, 'cio-ui-agent-overview-x')).toBe(
+      tagged.tracker
+    );
+  });
+
   it("keeps the rest of the host client's options", () => {
     withLibraryTag(client.tracker).trackProductInsightsAgentFocus(params);
 

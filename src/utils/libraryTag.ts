@@ -20,15 +20,15 @@ function canTag(options: unknown): options is Options {
   );
 }
 
-function tagOptions(options: Options): Options {
+function tagOptions(options: Options, tag: string): Options {
   return new Proxy(options, {
     get: (target, key, receiver) =>
-      key === 'version' ? LIBRARY_TAG : Reflect.get(target, key, receiver),
+      key === 'version' ? tag : Reflect.get(target, key, receiver),
     // Events copy the options with object spread, which reads descriptors rather than `get`.
     getOwnPropertyDescriptor: (target, key) =>
       key === 'version'
         ? {
-            value: LIBRARY_TAG,
+            value: tag,
             enumerable: true,
             configurable: true,
             writable: true,
@@ -40,7 +40,7 @@ function tagOptions(options: Options): Options {
 }
 
 /**
- * The given tracker, but events sent through it carry LIBRARY_TAG as their client tag, so they can
+ * The given tracker, but events sent through it carry `tag` (default LIBRARY_TAG) as their client tag, so they can
  * be told apart from the host's own events even when the host supplies its own `cioClient`.
  *
  * Everything else (identity, segments, test cells, service URL, request queue, listeners) is still
@@ -52,10 +52,13 @@ function tagOptions(options: Options): Options {
  * (missing, frozen) are sent as they are, and a call that fails on the tagged tracker is retried
  * on the host's, untagged.
  */
-export function withLibraryTag<T extends object>(tracker: T): T {
+export function withLibraryTag<T extends object>(
+  tracker: T,
+  tag: string = LIBRARY_TAG
+): T {
   const readOptions = () => (tracker as { options?: unknown }).options;
   const initial = readOptions();
-  if (!canTag(initial) || initial.version === LIBRARY_TAG) return tracker;
+  if (!canTag(initial) || initial.version === tag) return tracker;
 
   const taggedByOptions = new WeakMap<Options, Options>();
   const currentOptions = () => {
@@ -63,13 +66,13 @@ export function withLibraryTag<T extends object>(tracker: T): T {
     if (
       isLocked(tracker, 'options') ||
       !canTag(options) ||
-      options.version === LIBRARY_TAG
+      options.version === tag
     ) {
       return options;
     }
     let tagged = taggedByOptions.get(options);
     if (!tagged) {
-      tagged = tagOptions(options);
+      tagged = tagOptions(options, tag);
       taggedByOptions.set(options, tagged);
     }
     return tagged;
