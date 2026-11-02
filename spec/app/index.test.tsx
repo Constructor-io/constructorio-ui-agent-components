@@ -6,518 +6,207 @@ import {
   waitFor,
 } from '@testing-library/react';
 
+import {
+  controlledStream,
+  end,
+  itemResults,
+  message,
+  start,
+  streamOf,
+} from '@spec/__tests__/controlledStream';
 import * as factories from '@spec/factory';
 
 import CioAgentOverview from '@src/app';
-import type { IRecommendationSection } from '@src/types';
+import { AgentInsightsRequestError } from '@src/app/services/agentInsightsClient';
+import { streamAgentOverview } from '@src/app/services/agentOverviewClient';
+import type { IAgentOverviewProps } from '@src/types';
 
-function createFakeCategoryStream(): ReadableStream<unknown> {
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue({
-        type: 'message',
-        data: { text: 'Here are some categories for you.' },
-      });
-      controller.enqueue({
-        type: 'search_result',
-        data: {
-          title: 'Running Shoes',
-          response: {
-            results: [
-              {
-                value: 'Running Shoes',
-                data: {
-                  image_url: 'https://example.com/run.jpg',
-                  url: '',
-                  price: 0,
-                },
-              },
-            ],
-          },
-        },
-      });
-      controller.close();
-    },
-  });
-}
-
-/** Emits one section, then fails: the partial-result error path. */
-function createFailingProductStream(): ReadableStream<unknown> {
-  const chunks: unknown[] = [
-    {
-      type: 'group',
-      data: { title: 'Top Picks', description: 'Best products' },
-    },
-    {
-      type: 'search_result',
-      data: {
-        title: '',
-        response: {
-          results: [
-            {
-              value: 'Shoe A',
-              data: {
-                image_url: 'https://example.com/a.jpg',
-                url: '/a',
-                price: 100,
-              },
-            },
-          ],
-        },
-      },
-    },
-    // A section is flushed when the next group starts; the stream fails after that.
-    {
-      type: 'group',
-      data: { title: 'Second Group', description: 'Never completes' },
-    },
-  ];
-  // Erroring a stream discards queued chunks, so hand them out one per read.
-  return new ReadableStream({
-    pull(controller) {
-      const chunk = chunks.shift();
-      if (chunk === undefined) {
-        controller.error(new Error('Stream broke'));
-        return;
-      }
-      controller.enqueue(chunk);
-    },
-  });
-}
-
-function createFakeProductStream(): ReadableStream<unknown> {
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue({
-        type: 'group',
-        data: { title: 'Top Picks', description: 'Best products' },
-      });
-      controller.enqueue({
-        type: 'search_result',
-        data: {
-          title: '',
-          response: {
-            results: [
-              {
-                value: 'Shoe A',
-                data: {
-                  image_url: 'https://example.com/a.jpg',
-                  url: '/a',
-                  price: 100,
-                },
-              },
-            ],
-          },
-        },
-      });
-      controller.close();
-    },
-  });
-}
-
-vi.mock('@src/app/services/agentOverviewClient', () => ({
-  createAgentStream: vi.fn(
-    (_options: unknown, _intent: string, domain: string) => {
-      if (domain === 'searchbar_agent') {
-        return createFakeCategoryStream();
-      }
-      return createFakeProductStream();
-    }
-  ),
+vi.mock('@src/app/services/agentOverviewClient', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  streamAgentOverview: vi.fn(),
 }));
 
-/** Helper: wait for categories, click first one, wait for products */
-async function transitionToProducts() {
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(1100);
-  });
+const mockedStream = vi.mocked(streamAgentOverview);
+const cioJsClient = { options: { apiKey: 'k' } } as never;
 
-  const categoryButton = screen.getByRole('button', {
-    name: /Running Shoes/i,
-  });
-  act(() => {
-    categoryButton.click();
-  });
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(200);
-  });
+function renderOverview(overrides: Partial<IAgentOverviewProps> = {}) {
+  const props = {
+    ...factories.agentOverviewProps.build({ apiKey: undefined, ...overrides }),
+    cioJsClient,
+  };
+  return render(<CioAgentOverview {...props} />);
 }
 
-/** Helper: get the root element's inline style for CSS custom property testing */
-function getRootElement(container: HTMLElement): HTMLElement {
-  return container.querySelector('.cio-agent-overview-root') as HTMLElement;
+// The DOM classes are public API (customers style against them), so tests find elements by class.
+function find(container: HTMLElement, selector: string): Element | null {
+  return container.querySelector(selector);
 }
 
-describe(`${CioAgentOverview.name}: client`, () => {
-  it('renders without crashing', async () => {
-    const props = factories.agentOverviewProps.build();
-    expect(() => render(<CioAgentOverview {...props} />)).not.toThrow();
-    await waitFor(() => {
-      // Wait for async state updates to settle
-    });
+function findAll(container: HTMLElement, selector: string): Element[] {
+  return [...container.querySelectorAll(selector)];
+}
+
+function root(container: HTMLElement): HTMLElement {
+  return find(container, '.cio-agent-overview-root') as HTMLElement;
+}
+
+describe('CioAgentOverview', () => {
+  afterEach(() => {
+    mockedStream.mockReset();
   });
 
-  describe('getViewMoreUrl', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('renders view more link using getViewMoreUrl callback', async () => {
-      const getViewMoreUrl = vi.fn(
-        (section: IRecommendationSection) =>
-          `/search?q=${encodeURIComponent(section.title)}`
-      );
-      const props = factories.agentOverviewProps.build({
-        callbacks: { getViewMoreUrl },
-      });
-
-      render(<CioAgentOverview {...props} />);
-      await transitionToProducts();
-
-      const link = screen.getByRole('link', { name: /view more/i });
-      expect(link.getAttribute('href')).toBe('/search?q=Top%20Picks');
-      expect(getViewMoreUrl).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Top Picks' })
-      );
-    });
-
-    it('does not render view more link when getViewMoreUrl is not provided', async () => {
-      const props = factories.agentOverviewProps.build();
-
-      render(<CioAgentOverview {...props} />);
-      await transitionToProducts();
-
-      expect(screen.getByText('Top Picks')).toBeTruthy();
-      expect(screen.queryByRole('link', { name: /view more/i })).toBeNull();
-    });
+  it('should show the skeleton while loading', () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const { container } = renderOverview();
+    expect(
+      find(container, '.cio-agent-overview-skeleton-section')
+    ).toBeInTheDocument();
   });
 
-  describe('theme and sanitizeCssValue', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
+  it('should show the badge and message as soon as the message arrives', async () => {
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { container } = renderOverview();
+
+    act(() => {
+      controlled.push(start);
+      controlled.push(message('A casual selection.'));
     });
 
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('applies theme overrides as CSS custom properties', async () => {
-      const props = factories.agentOverviewProps.build({
-        theme: {
-          primaryColor: '#ff0000',
-          fontFamily: 'Arial, sans-serif',
-          spacingMd: '16px',
-        },
-      });
-
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const root = getRootElement(container);
-      expect(root.style.getPropertyValue('--cio-color-primary')).toBe(
-        '#ff0000'
-      );
-      expect(root.style.getPropertyValue('--cio-font-family')).toBe(
-        'Arial, sans-serif'
-      );
-      expect(root.style.getPropertyValue('--cio-spacing-md')).toBe('16px');
-    });
-
-    it('sanitizes CSS values by stripping angle brackets', async () => {
-      const props = factories.agentOverviewProps.build({
-        theme: {
-          primaryColor: '<script>alert(1)</script>red',
-        },
-      });
-
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const root = getRootElement(container);
-      const value = root.style.getPropertyValue('--cio-color-primary');
-      expect(value).not.toContain('<');
-      expect(value).not.toContain('>');
-    });
-
-    it('sanitizes CSS values by blocking javascript: protocol', async () => {
-      const props = factories.agentOverviewProps.build({
-        theme: {
-          background: 'javascript:alert(1)',
-        },
-      });
-
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const root = getRootElement(container);
-      const value = root.style.getPropertyValue('--cio-color-background');
-      expect(value).not.toContain('javascript:');
-      expect(value).toContain('blocked:');
-    });
-
-    it('trims whitespace from CSS values', async () => {
-      const props = factories.agentOverviewProps.build({
-        theme: {
-          primaryColor: '  #00ff00  ',
-        },
-      });
-
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const root = getRootElement(container);
-      expect(root.style.getPropertyValue('--cio-color-primary')).toBe(
-        '#00ff00'
-      );
-    });
-
-    it('returns empty styles when no theme is provided', async () => {
-      const props = factories.agentOverviewProps.build();
-
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const root = getRootElement(container);
-      expect(root.style.getPropertyValue('--cio-color-primary')).toBe('');
-    });
+    expect(await screen.findByText('A casual selection.')).toHaveClass(
+      'cio-agent-overview-message'
+    );
+    expect(screen.getByText('Generated with AI')).toBeInTheDocument();
+    // Products are still on their way: a carousel placeholder holds their place.
+    expect(
+      find(
+        container,
+        '.cio-agent-overview-section .cio-agent-overview-skeleton-products'
+      )
+    ).toBeInTheDocument();
   });
 
-  describe('callback wiring', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
+  it("should render every section's products in one carousel, in order", async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        message('Casual looks.'),
+        itemResults('Casual Shirt', 's1', ['Shirt']),
+        itemResults('Casual Pants', 's2', ['Pants', 'Chinos']),
+        end
+      )
+    );
+    const { container } = renderOverview();
 
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('fires onCategoryClick with the clicked category', async () => {
-      const onCategoryClick = vi.fn();
-      const props = factories.agentOverviewProps.build({
-        callbacks: { onCategoryClick },
-      });
-
-      render(<CioAgentOverview {...props} />);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      const categoryButton = screen.getByRole('button', {
-        name: /Running Shoes/i,
-      });
-      act(() => {
-        categoryButton.click();
-      });
-
-      expect(onCategoryClick).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Running Shoes',
-          imageUrl: 'https://example.com/run.jpg',
-        })
-      );
-    });
-
-    it('fires onProductClick with event, product, and section', async () => {
-      const onProductClick = vi.fn();
-      const props = factories.agentOverviewProps.build({
-        callbacks: { onProductClick },
-      });
-
-      render(<CioAgentOverview {...props} />);
-      await transitionToProducts();
-
-      // Find a product card and click it
-      const productElement = screen.getByText('Shoe A');
-      fireEvent.click(productElement);
-
-      expect(onProductClick).toHaveBeenCalledWith(
-        expect.any(Object), // MouseEvent
-        expect.objectContaining({ itemName: 'Shoe A' }),
-        expect.objectContaining({ title: 'Top Picks' })
-      );
-    });
+    await waitFor(() =>
+      expect(findAll(container, '.cio-agent-overview-carousel')).toHaveLength(1)
+    );
+    const names = screen
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(names).toEqual(['/p/Shirt', '/p/Pants', '/p/Chinos']);
+    expect(
+      find(container, '.cio-agent-overview-skeleton-section')
+    ).not.toBeInTheDocument();
   });
 
-  describe('translations', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('renders custom translation for AI badge', async () => {
-      const props = factories.agentOverviewProps.build({
-        translations: {
-          'CioAgentOverview.section.aiBadge': 'Custom AI Label',
-        },
-      });
-
-      render(<CioAgentOverview {...props} />);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
-      expect(screen.getByText('Custom AI Label')).toBeTruthy();
-    });
+  it('should split the message into paragraphs', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        message('One.'),
+        message('Two.'),
+        itemResults('A', 's1', ['a']),
+        end
+      )
+    );
+    renderOverview();
+    expect(await screen.findByText('One.')).toBeInTheDocument();
+    expect(screen.getByText('Two.')).toHaveClass('cio-agent-overview-message');
   });
 
-  describe('error state', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
+  it('should render nothing for no-overview', async () => {
+    const onNoOverview = vi.fn();
+    mockedStream.mockReturnValue(streamOf());
+    mockedStream.mockImplementation(() => {
+      const c = controlledStream();
+      c.fail(new AgentInsightsRequestError(422, 'not suitable'));
+      return c.stream;
     });
+    const { container } = renderOverview({ callbacks: { onNoOverview } });
 
-    afterEach(() => {
-      vi.useRealTimers();
+    await waitFor(() => expect(onNoOverview).toHaveBeenCalled());
+    expect(root(container)).toBeEmptyDOMElement();
+  });
+
+  it('should render nothing for an error', async () => {
+    const onError = vi.fn();
+    mockedStream.mockImplementation(() => {
+      const c = controlledStream();
+      c.fail(new AgentInsightsRequestError(503, 'down'));
+      return c.stream;
     });
+    const { container } = renderOverview({ callbacks: { onError } });
 
-    it('renders the error when the product stream fails after categories', async () => {
-      const { createAgentStream: mockCreate } =
-        await import('@src/app/services/agentOverviewClient');
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          throw new Error('Products failed');
-        }
-      );
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(root(container)).toBeEmptyDOMElement();
+  });
 
-      const props = factories.agentOverviewProps.build();
-      render(<CioAgentOverview {...props} />);
-      await transitionToProducts();
+  it('should render nothing for a blank query', () => {
+    const { container } = renderOverview({ query: '' });
+    expect(root(container)).toBeEmptyDOMElement();
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
 
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Something went wrong. Please try again.'
-      );
+  it("should pass the product's section to onProductClick", async () => {
+    const onProductClick = vi.fn((event: React.MouseEvent) =>
+      event.preventDefault()
+    );
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        itemResults('Casual Shirt', 's1', ['Shirt']),
+        itemResults('Casual Pants', 's2', ['Pants']),
+        end
+      )
+    );
+    const { container } = renderOverview({ callbacks: { onProductClick } });
 
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return createFakeProductStream();
-        }
-      );
-    });
-
-    it('shows the error next to sections that arrived before the stream failed', async () => {
-      const { createAgentStream: mockCreate } =
-        await import('@src/app/services/agentOverviewClient');
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return createFailingProductStream();
-        }
-      );
-
-      const props = factories.agentOverviewProps.build();
-      render(<CioAgentOverview {...props} />);
-      await transitionToProducts();
-
-      expect(screen.getByRole('heading', { name: 'Top Picks' })).toBeTruthy();
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Something went wrong. Please try again.'
-      );
-
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return createFakeProductStream();
-        }
-      );
-    });
-
-    it('renders a single skeleton while products load', async () => {
-      const { createAgentStream: mockCreate } =
-        await import('@src/app/services/agentOverviewClient');
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          // Never resolves, so the products phase stays in its loading state.
-          return new ReadableStream({ start() {} });
-        }
-      );
-
-      const props = factories.agentOverviewProps.build();
-      const { container } = render(<CioAgentOverview {...props} />);
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-      fireEvent.click(screen.getByRole('button', { name: /Running Shoes/i }));
-
-      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
-      const skeletons = container.querySelectorAll(
-        '.cio-agent-overview-skeleton-section'
-      );
-      // The default products skeleton has 3 rows; a second skeleton tree would add a 4th.
-      expect(skeletons).toHaveLength(3);
-
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return createFakeProductStream();
-        }
-      );
-    });
-
-    it('renders error message when streams fail', async () => {
-      vi.useFakeTimers();
-      const { createAgentStream: mockCreate } =
-        await import('@src/app/services/agentOverviewClient');
-      vi.mocked(mockCreate).mockImplementation(() => {
-        throw new Error('Network failure');
-      });
-
-      const props = factories.agentOverviewProps.build();
-      render(<CioAgentOverview {...props} />);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(1100);
-      });
-
+    await waitFor(() =>
       expect(
-        screen.getByText('Something went wrong. Please try again.')
-      ).toBeTruthy();
-      expect(screen.getByRole('alert').textContent).toBe(
-        'Something went wrong. Please try again.'
-      );
+        find(container, '.cio-agent-overview-carousel a[href="/p/Pants"]')
+      ).toBeInTheDocument()
+    );
+    fireEvent.click(
+      find(container, '.cio-agent-overview-carousel a[href="/p/Pants"]')!
+    );
 
-      vi.mocked(mockCreate).mockImplementation(
-        (_options: unknown, _intent: string, domain: string) => {
-          if (domain === 'searchbar_agent') {
-            return createFakeCategoryStream();
-          }
-          return createFakeProductStream();
-        }
-      );
-      vi.useRealTimers();
+    expect(onProductClick).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ itemName: 'Pants' }),
+      expect.objectContaining({ title: 'Casual Pants', searchResultId: 's2' })
+    );
+  });
+
+  it('should use getProductUrl for card links', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('A', 's1', ['Shirt']), end)
+    );
+    const { container } = renderOverview({
+      callbacks: { getProductUrl: (product) => `/custom/${product.itemName}` },
     });
+    await waitFor(() =>
+      expect(find(container, 'a[href="/custom/Shirt"]')).toBeInTheDocument()
+    );
+  });
+
+  it('should apply theme variables to the root', () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const { container } = renderOverview({
+      theme: { primaryColor: '#123456' },
+    });
+    expect(root(container).style.getPropertyValue('--cio-color-primary')).toBe(
+      '#123456'
+    );
   });
 });

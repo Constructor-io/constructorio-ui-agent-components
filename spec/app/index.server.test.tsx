@@ -8,8 +8,9 @@ import type { IAgentOverviewProps } from '@src/types';
 describe(`${CioAgentOverview.name}: server`, () => {
   const props: IAgentOverviewProps = factories.agentOverviewProps.build();
 
-  it('renders without crashing', () => {
+  it('renders the root with the loading skeleton', () => {
     const view = renderToString(<CioAgentOverview {...props} />);
     expect(view).toContain('cio-agent-overview-root');
+    expect(view).toContain('cio-agent-overview-skeleton-section');
   });
 });

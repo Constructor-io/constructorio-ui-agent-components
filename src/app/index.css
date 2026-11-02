@@ -6,25 +6,15 @@
   overflow: hidden;
 }
 
-.cio-agent-overview-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--cio-spacing-2xl) var(--cio-spacing-lg);
-  text-align: center;
+.cio-agent-overview-root:empty {
+  display: none;
 }
 
-.cio-agent-overview-error-icon {
-  color: var(--cio-color-muted);
-  margin-bottom: var(--cio-spacing-lg);
-}
-
-.cio-agent-overview-error-message {
+.cio-agent-overview-message {
   font-family: var(--cio-font-family);
-  font-size: var(--cio-font-size-sm);
+  font-size: var(--cio-font-size-base);
   font-weight: var(--cio-font-weight-normal);
-  color: var(--cio-color-muted);
-  margin: 0;
+  color: var(--cio-color-primary);
   line-height: var(--cio-line-height);
+  margin: 0 0 var(--cio-spacing-xl);
 }

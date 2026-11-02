@@ -1,258 +1,178 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
+  IAgentOverviewError,
   IAgentOverviewProps,
-  ICategory,
+  IAgentOverviewSection,
   IProduct,
-  IRecommendationSection,
+  UseAgentOverviewReturn,
 } from '@src/types';
 import toProduct from '@src/utils/toProduct';
 
-import { createAgentStream } from '../services/agentOverviewClient';
-import { parseAgentStream } from '../services/agentStreamParser';
-import type { AgentStreamSearchResultEvent } from '../services/agentStreamTypes';
-type Phase = 'categories' | 'products';
+import { AgentInsightsRequestError } from '../services/agentInsightsClient';
+import {
+  createAgentOverviewClient,
+  streamAgentOverview,
+} from '../services/agentOverviewClient';
 
-interface CategoriesResult {
-  categories: ICategory[];
-  description: string;
+/** The HTTP status the search endpoint answers when a query gets no overview. */
+const NO_OVERVIEW_STATUS = 422;
+
+function initialState(query: string): UseAgentOverviewReturn {
+  return {
+    status: query.trim() ? 'loading' : 'idle',
+    message: '',
+    sections: [],
+    resultId: null,
+    threadId: null,
+    error: null,
+  };
 }
 
-function toProducts(event: AgentStreamSearchResultEvent): IProduct[] {
-  return (event.data.response?.results ?? [])
-    .map(toProduct)
-    .filter((p): p is IProduct => p !== null);
-}
-
-function toCategory(event: AgentStreamSearchResultEvent): ICategory | null {
-  const title =
-    typeof event.data.title === 'string' ? event.data.title.trim() : '';
-  const imageUrl = event.data.response?.results?.[0]?.data?.image_url ?? '';
-  if (!title || !imageUrl) return null;
-  return { title, imageUrl };
-}
-
-async function consumeCategories(
-  props: Pick<
-    IAgentOverviewProps,
-    'apiKey' | 'cioJsClient' | 'intent' | 'domains'
-  >,
-  abortRef: React.RefObject<boolean>
-): Promise<CategoriesResult> {
-  const minDelay = new Promise((resolve) => setTimeout(resolve, 1000));
-
-  const rawStream = createAgentStream(
-    { apiKey: props.apiKey, cioJsClient: props.cioJsClient },
-    props.intent,
-    props.domains.suggestions
-  );
-  const events = parseAgentStream(rawStream);
-  const categories: ICategory[] = [];
-  let description = '';
-
-  for await (const event of events) {
-    if (abortRef.current) break;
-
-    if (event.type === 'message') {
-      description = event.data.text;
-    } else if (event.type === 'search_result') {
-      const category = toCategory(event);
-      if (category) categories.push(category);
-    }
+function toError(err: unknown): IAgentOverviewError {
+  if (err instanceof AgentInsightsRequestError) {
+    return {
+      status: err.status,
+      ...(err.code && { code: err.code }),
+      message: err.message,
+    };
   }
-
-  await minDelay;
-  return { categories, description };
+  return {
+    status: 0,
+    message: err instanceof Error ? err.message : String(err),
+  };
 }
 
-async function consumeProducts(
-  props: Pick<
-    IAgentOverviewProps,
-    'apiKey' | 'cioJsClient' | 'intent' | 'domains'
-  >,
-  abortRef: React.RefObject<boolean>,
-  onSection: (section: IRecommendationSection) => void
-): Promise<{ error: string | null }> {
-  const rawStream = createAgentStream(
-    { apiKey: props.apiKey, cioJsClient: props.cioJsClient },
-    props.intent,
-    props.domains.results
-  );
-  const events = parseAgentStream(rawStream);
-
-  let currentTitle = '';
-  let currentDescription = '';
-  let currentProducts: IProduct[] = [];
-
-  function flushSection() {
-    if (currentProducts.length > 0) {
-      onSection({
-        title: currentTitle,
-        description: currentDescription,
-        products: [...currentProducts],
-      });
-    }
-    currentTitle = '';
-    currentProducts = [];
-  }
-
-  for await (const event of events) {
-    if (abortRef.current) break;
-
-    if (event.type === 'message') {
-      currentDescription = event.data.text;
-    } else if (event.type === 'group') {
-      flushSection();
-      currentTitle = event.data.title;
-      currentDescription = event.data.description;
-    } else if (event.type === 'search_result') {
-      const products = toProducts(event);
-      if (event.data.title) {
-        flushSection();
-        currentTitle = event.data.title;
-      }
-      currentProducts.push(...products);
-    }
-  }
-  flushSection();
-
-  return { error: null };
+function isAbort(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
 }
 
 /**
- * Hook that manages the full Agent Overview lifecycle: streaming categories,
- * handling user selection, and streaming product recommendation sections.
+ * Streams the AI Overview for `query` from `/v1/agent_insights/search`: the overview message,
+ * then each product set as it arrives. A new query aborts the previous request.
  *
  * @example
  * ```tsx
- * const { phase, categories, sections, selectCategory, isLoading, error } =
- *   useAgentOverview({ apiKey: 'YOUR_API_KEY', intent: 'I want to buy shoes', domains });
+ * const { status, message, sections } = useAgentOverview({ apiKey: 'YOUR_API_KEY', query });
  * ```
  */
-export default function useAgentOverview(props: IAgentOverviewProps): {
-  phase: Phase;
-  categories: ICategory[];
-  categoryDescription: string;
-  sections: IRecommendationSection[];
-  selectCategory: (category: ICategory) => void;
-  isLoading: boolean;
-  error: string | null;
-} {
-  const { apiKey, cioJsClient, intent, domains } = props;
-  const [phase, setPhase] = useState<Phase>('categories');
-  const [categories, setCategories] = useState<ICategory[]>([]);
-  const [categoryDescription, setCategoryDescription] = useState('');
-  const [sections, setSections] = useState<IRecommendationSection[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function useAgentOverview(
+  props: IAgentOverviewProps
+): UseAgentOverviewReturn {
+  const { apiKey, cioJsClient, query, pageContext, callbacks } = props;
+  const pageType = pageContext?.pageType;
+  const searchTerm = pageContext?.searchTerm;
+  const client = useMemo(
+    () => createAgentOverviewClient({ apiKey, cioJsClient }),
+    [apiKey, cioJsClient]
+  );
 
-  const abortRef = useRef(false);
-  const phaseRef = useRef<Phase>('categories');
-  const bufferedSectionsRef = useRef<IRecommendationSection[]>([]);
-  const productsDoneRef = useRef(false);
-  const productsErrorRef = useRef<string | null>(null);
+  const [state, setState] = useState(() => initialState(query));
 
-  useEffect(() => {
-    if (!intent || !domains?.suggestions || !domains?.results) return;
-
-    abortRef.current = false;
-    phaseRef.current = 'categories';
-    bufferedSectionsRef.current = [];
-    productsDoneRef.current = false;
-    productsErrorRef.current = null;
-
-    function resetAndFetch() {
-      setPhase('categories');
-      setIsLoading(true);
-      setError(null);
-      setCategories([]);
-      setCategoryDescription('');
-      setSections([]);
-
-      consumeCategories({ apiKey, cioJsClient, intent, domains }, abortRef)
-        .then((result) => {
-          if (abortRef.current) return;
-          setCategoryDescription(result.description);
-          setCategories(result.categories);
-        })
-        .catch((err: unknown) => {
-          if (!abortRef.current) {
-            setError(
-              err instanceof Error ? err.message : 'Failed to load categories'
-            );
-          }
-        })
-        .finally(() => setIsLoading(false));
-
-      consumeProducts(
-        { apiKey, cioJsClient, intent, domains },
-        abortRef,
-        (section) => {
-          if (abortRef.current) return;
-          if (phaseRef.current === 'products') {
-            setSections((prev) => [...prev, section]);
-          } else {
-            bufferedSectionsRef.current.push(section);
-          }
-        }
-      )
-        .then((result) => {
-          productsDoneRef.current = true;
-          productsErrorRef.current = result.error;
-        })
-        .catch((err: unknown) => {
-          productsDoneRef.current = true;
-          productsErrorRef.current =
-            err instanceof Error ? err.message : 'Failed to load results';
-        });
-    }
-
-    resetAndFetch();
-
-    return () => {
-      abortRef.current = true;
-    };
-  }, [apiKey, cioJsClient, intent, domains]);
-
-  function selectCategory(_category: ICategory) {
-    setPhase('products');
-    phaseRef.current = 'products';
-    setError(null);
-
-    // Flush any sections that arrived while in categories phase
-    if (bufferedSectionsRef.current.length > 0) {
-      setSections(bufferedSectionsRef.current);
-      bufferedSectionsRef.current = [];
-    }
-
-    if (productsDoneRef.current) {
-      if (productsErrorRef.current) {
-        setError(productsErrorRef.current);
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-
-    const interval = setInterval(() => {
-      if (!productsDoneRef.current) return;
-
-      clearInterval(interval);
-      if (productsErrorRef.current) {
-        setError(productsErrorRef.current);
-      }
-      setIsLoading(false);
-    }, 100);
+  // A new request starts from a clean state in the same render, so no frame shows the previous
+  // query's overview (React's "adjusting state when a prop changes").
+  const request = { client, query, pageType, searchTerm };
+  const [lastRequest, setLastRequest] = useState(request);
+  if (
+    lastRequest.client !== client ||
+    lastRequest.query !== query ||
+    lastRequest.pageType !== pageType ||
+    lastRequest.searchTerm !== searchTerm
+  ) {
+    setLastRequest(request);
+    setState(initialState(query));
   }
 
-  return {
-    phase,
-    categories,
-    categoryDescription,
-    sections,
-    selectCategory,
-    isLoading,
-    error,
-  };
+  const callbacksRef = useRef(callbacks);
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  });
+
+  useEffect(() => {
+    if (!query.trim()) return undefined;
+
+    const controller = new AbortController();
+    const isCurrent = () => !controller.signal.aborted;
+    const update = (patch: Partial<UseAgentOverviewReturn>) => {
+      if (isCurrent()) setState((prev) => ({ ...prev, ...patch }));
+    };
+
+    async function run() {
+      const sections: IAgentOverviewSection[] = [];
+      const messages: string[] = [];
+      let serverError: IAgentOverviewError | null = null;
+
+      for await (const event of streamAgentOverview(
+        client,
+        {
+          query,
+          pageContext:
+            pageType || searchTerm !== undefined
+              ? { pageType, searchTerm }
+              : undefined,
+        },
+        controller.signal
+      )) {
+        if (!isCurrent()) return;
+        if (event.type === 'start') {
+          update({
+            status: 'streaming',
+            resultId: event.resultId,
+            threadId: event.threadId ?? null,
+          });
+        } else if (event.type === 'message') {
+          messages.push(event.text);
+          update({ message: messages.join('\n\n') });
+        } else if (event.type === 'item_results') {
+          const products = event.results
+            .map(toProduct)
+            .filter((product): product is IProduct => product !== null);
+          if (products.length > 0) {
+            sections.push({
+              title: event.title.trim(),
+              ...(event.searchResultId && {
+                searchResultId: event.searchResultId,
+              }),
+              products,
+            });
+            update({ sections: [...sections] });
+          }
+        } else if (event.type === 'server_error') {
+          serverError = { status: event.statusCode, message: event.message };
+        } else if (event.type === 'end') {
+          break;
+        }
+      }
+
+      if (!isCurrent()) return;
+      if (sections.length > 0) {
+        update({ status: 'done' });
+      } else if (serverError) {
+        update({ status: 'error', error: serverError });
+        callbacksRef.current?.onError?.(serverError);
+      } else {
+        update({ status: 'no-overview' });
+        callbacksRef.current?.onNoOverview?.();
+      }
+    }
+
+    run().catch((err: unknown) => {
+      if (!isCurrent() || isAbort(err)) return;
+      if (
+        err instanceof AgentInsightsRequestError &&
+        err.status === NO_OVERVIEW_STATUS
+      ) {
+        update({ status: 'no-overview' });
+        callbacksRef.current?.onNoOverview?.();
+        return;
+      }
+      const error = toError(err);
+      update({ status: 'error', error });
+      callbacksRef.current?.onError?.(error);
+    });
+
+    return () => controller.abort();
+  }, [client, query, pageType, searchTerm]);
+
+  return state;
 }
