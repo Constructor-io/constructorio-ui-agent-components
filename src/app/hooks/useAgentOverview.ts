@@ -183,11 +183,13 @@ export default function useAgentOverview(
 
     // Outside run() so a stream that breaks off can still finish with what already arrived.
     const sections: IAgentOverviewSection[] = [];
+    let overview: TrackedOverview | null = null;
+    const productCount = () =>
+      sections.reduce((count, section) => count + section.products.length, 0);
 
     async function run() {
       const messages: string[] = [];
       let serverError: IAgentOverviewError | null = null;
-      let overview: TrackedOverview | null = null;
 
       for await (const event of streamAgentOverview(
         client,
@@ -232,15 +234,7 @@ export default function useAgentOverview(
       }
 
       if (!isCurrent()) return;
-      if (overview) {
-        tracking.trackLoadFinished(
-          overview,
-          sections.reduce(
-            (count, section) => count + section.products.length,
-            0
-          )
-        );
-      }
+      if (overview) tracking.trackLoadFinished(overview, productCount());
       if (sections.length > 0) {
         update({ status: 'done' });
       } else if (serverError) {
@@ -256,6 +250,7 @@ export default function useAgentOverview(
       if (!isCurrent() || isAbort(err)) return;
       // The connection dropped after products were shown: keep them.
       if (sections.length > 0) {
+        if (overview) tracking.trackLoadFinished(overview, productCount());
         update({ status: 'done' });
         return;
       }
@@ -285,7 +280,8 @@ export default function useAgentOverview(
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          inViewRef.current = entry.isIntersecting;
+          inViewRef.current =
+            entry.isIntersecting && entry.intersectionRatio >= VIEW_THRESHOLD;
           sendViews();
         },
         { threshold: VIEW_THRESHOLD }
@@ -295,8 +291,6 @@ export default function useAgentOverview(
     },
     [sendViews]
   );
-
-  useEffect(() => () => observerRef.current?.disconnect(), []);
 
   const trackProductClick = useCallback(
     (product: IProduct, section: IAgentOverviewSection) => {

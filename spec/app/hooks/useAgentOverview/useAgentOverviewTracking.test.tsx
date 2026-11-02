@@ -1,7 +1,7 @@
 // cspell:ignore unstub -- vitest's vi.unstubAllGlobals
 import { StrictMode } from 'react';
 
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, render, renderHook, waitFor } from '@testing-library/react';
 
 import {
   controlledStream,
@@ -69,10 +69,19 @@ class FakeIntersectionObserver {
   }
 }
 
-function setInView(isIntersecting: boolean) {
+function setInView(
+  isIntersecting: boolean,
+  intersectionRatio = isIntersecting ? 1 : 0
+) {
   observers.forEach(({ callback, target }) =>
     callback(
-      [{ isIntersecting, target } as IntersectionObserverEntry],
+      [
+        {
+          isIntersecting,
+          intersectionRatio,
+          target,
+        } as IntersectionObserverEntry,
+      ],
       {} as IntersectionObserver
     )
   );
@@ -136,6 +145,33 @@ describe('useAgentOverview tracking', () => {
     await waitFor(() => expect(tracker.trackAgentSubmit).toHaveBeenCalled());
     await act(() => Promise.resolve());
     expect(tracker.trackAgentSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('should send views from an element mounted with the hook under StrictMode', async () => {
+    respondWith(controlledStream().stream);
+    const controlled = controlledStream();
+    respondWith(controlled.stream);
+    let status = '';
+    function Headless() {
+      const overview = useAgentOverview(build());
+      status = overview.status;
+      return <div ref={overview.viewRef} />;
+    }
+    render(
+      <StrictMode>
+        <Headless />
+      </StrictMode>
+    );
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a']));
+      controlled.push(end);
+    });
+    await waitFor(() => expect(status).toBe('done'));
+
+    act(() => setInView(true));
+
+    expect(tracker.trackAgentResultView).toHaveBeenCalledTimes(1);
   });
 
   it('should send load started with the result and thread ids', async () => {
@@ -242,6 +278,50 @@ describe('useAgentOverview tracking', () => {
 
     expect(tracker.trackAgentResultView).toHaveBeenCalledWith(
       expect.objectContaining({ searchResultId: 's1' })
+    );
+  });
+
+  it('should not count an overview less than half on screen as viewed', async () => {
+    respondWith(streamOf(start, itemResults('A', 's1', ['a']), end));
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('done'));
+
+    act(() => setInView(true, 0.1));
+    expect(tracker.trackAgentResultView).not.toHaveBeenCalled();
+
+    act(() => setInView(true, 0.6));
+    expect(tracker.trackAgentResultView).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not send views for sections that arrive after it scrolls away', async () => {
+    const controlled = controlledStream();
+    respondWith(controlled.stream);
+    const { result } = renderOverview();
+    act(() => setInView(true, 0.6));
+    // The observer reports the drop below half as a ratio, still intersecting.
+    act(() => setInView(true, 0.3));
+
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a']));
+    });
+    await waitFor(() => expect(result.current.sections).toHaveLength(1));
+
+    expect(tracker.trackAgentResultView).not.toHaveBeenCalled();
+  });
+
+  it('should send load finished with the products shown when the stream breaks off', async () => {
+    const controlled = controlledStream();
+    respondWith(controlled.stream);
+    const { result } = renderOverview();
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a', 'b']));
+      controlled.fail(new TypeError('network error'));
+    });
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ searchResultCount: 2 })
     );
   });
 
