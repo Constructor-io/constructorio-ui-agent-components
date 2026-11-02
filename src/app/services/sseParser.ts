@@ -47,8 +47,8 @@ export async function* parseSse(
     return null;
   }
 
+  let done = false;
   try {
-    let done = false;
     while (!done) {
       const result = await reader.read();
       done = result.done;
@@ -74,6 +74,9 @@ export async function* parseSse(
     const last = takeFrame();
     if (last) yield last;
   } finally {
+    // Stopped before the end (the caller broke out, or got what it needed): close the response
+    // rather than leave the connection open until the server closes it.
+    if (!done) await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }

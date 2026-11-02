@@ -70,6 +70,35 @@ describe('parseSse', () => {
     expect(await collect(body)).toEqual([{ event: 'end', data: '{}' }]);
   });
 
+  it('should cancel the body when the consumer stops early', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(FIXTURE));
+        // Left open, as a server that keeps the connection alive would.
+      },
+      cancel,
+    });
+    for await (const frame of parseSse(body)) {
+      expect(frame.event).toBe('start');
+      break;
+    }
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not cancel a body it read to the end', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(FIXTURE));
+        controller.close();
+      },
+      cancel,
+    });
+    await collect(body);
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
   it('should release the reader lock when the consumer stops early', async () => {
     const body = streamOf(encoder.encode(FIXTURE));
 
