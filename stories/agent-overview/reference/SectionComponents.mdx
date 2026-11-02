@@ -4,7 +4,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 # Section Components
 
-The parts `CioAgentOverview` renders products with, for use with [useAgentOverview](?path=/docs/agent-overview-components-utilities-useagentoverview--docs). Render them inside a `cio-agent-overview-root` element to get the styles.
+Product components for use with [useAgentOverview](?path=/docs/agent-overview-components-utilities-useagentoverview--docs). Render them inside a `cio-agent-overview-root` element to get the styles.
 
 ```jsx
 import {
@@ -18,7 +18,7 @@ import {
   {`
 | Component | Props |
 |---|---|
-| \`RecommendationSection\` | \`section\`, \`translations?\`, \`getProductUrl?(product)\`, \`onProductClick?(event, product)\`. Renders the badge, title, description, "View more" link (when \`section.viewMoreUrl\` is set) and carousel |
+| \`RecommendationSection\` | \`section\`, \`translations?\`, \`getProductUrl?(product)\`, \`onProductClick?(event, product)\`. Renders the badge, title, description, "View more" link (when \`section.viewMoreUrl\` is set) and carousel. \`CioAgentOverview\` doesn't use it |
 | \`ProductCarousel\` | \`products\`, \`label?\` (accessible name), \`translations?\`, \`getProductUrl?\`, \`onProductClick?\` |
 | \`ProductCard\` | \`product\`, \`href?\` (default \`product.url\`), \`onClick?(event)\` |
 `}

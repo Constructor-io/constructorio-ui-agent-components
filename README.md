@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@constructor-io/constructorio-ui-agent-components)](https://www.npmjs.com/package/@constructor-io/constructorio-ui-agent-components)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Constructor-io/constructorio-ui-agent-components/blob/master/LICENSE)
 
-React components for Constructor.io's agentic experiences. Agent Overview streams AI-generated category suggestions and product recommendations for a shopping intent.
+React components for Constructor.io's agentic experiences. Agent Overview streams an AI Overview for a search: a short AI-written summary and the products picked for it.
 
 **[Documentation →](https://constructor-io.github.io/constructorio-ui-agent-components/)**
 
@@ -19,9 +19,7 @@ npm i @constructor-io/constructorio-ui-agent-components
 import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-const domains = { suggestions: 'YOUR_SUGGESTIONS_DOMAIN', results: 'YOUR_RESULTS_DOMAIN' };
-
-<CioAgentOverview apiKey='YOUR_API_KEY' intent='I want to buy shoes' domains={domains} />;
+<CioAgentOverview apiKey='YOUR_API_KEY' query='gift for my dad who loves grilling' />;
 ```
 
 The JavaScript bundle, the headless hook, callbacks, theming and every prop are in the [docs](https://constructor-io.github.io/constructorio-ui-agent-components/).

@@ -7,19 +7,16 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 ```jsx
 <CioAgentOverview
   apiKey="YOUR_API_KEY"
-  intent={query}
-  domains={domains}
+  query={searchQuery}
   callbacks={{
-    onCategoryClick: (category) =>
-      myAnalytics.track('category_click', { title: category.title }),
     onProductClick: (event, product, section) =>
       myAnalytics.track('product_click', {
         name: product.itemName,
-        section: section.title,
+        category: section.title,
       }),
-    getProductUrl: (product) => `${product.url}?ref=agent-overview`,
-    getViewMoreUrl: (section) =>
-      `/search?q=${encodeURIComponent(section.title)}`,
+    getProductUrl: (product) => `${product.url}?ref=ai-overview`,
+    onNoOverview: () => setOverviewSlotVisible(false),
+    onError: (error) => myLogger.warn('AI Overview failed', error),
   }}
 />
 ```
@@ -28,9 +25,9 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
   {`
 | Callback | Called |
 |---|---|
-| \`onCategoryClick(category)\` | When a category card is clicked, before the products show. Not called for "View suggestions" |
-| \`onProductClick(event, product, section)\` | When a product card is clicked. The card is a link: call \`event.preventDefault()\` to navigate yourself |
+| \`onProductClick(event, product, section)\` | When a product card is clicked, with the product set it came from. The card is a link: call \`event.preventDefault()\` to navigate yourself |
 | \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
-| \`getViewMoreUrl(section)\` | For each section. Its "View more" link opens in a new tab; without this callback there is no link |
+| \`onNoOverview()\` | When the search gets no overview. The component renders nothing |
+| \`onError(error)\` | When the request fails, with \`{ status, code, message }\`. \`status\` is 0 when there was no response. The component renders nothing |
 `}
 </Markdown>
