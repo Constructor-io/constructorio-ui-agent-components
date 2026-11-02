@@ -47,21 +47,21 @@ type Tracker = Record<
 let tracker: Tracker;
 let cioJsClient: never;
 
-// A fake IntersectionObserver that a test moves in and out of view.
+// A fake IntersectionObserver that a test moves elements in and out of view.
 let observers: Array<{
   callback: IntersectionObserverCallback;
-  target?: Element;
+  targets: Element[];
 }> = [];
 class FakeIntersectionObserver {
   private entry: (typeof observers)[number];
 
   constructor(callback: IntersectionObserverCallback) {
-    this.entry = { callback };
+    this.entry = { callback, targets: [] };
     observers.push(this.entry);
   }
 
   observe(target: Element) {
-    this.entry.target = target;
+    this.entry.targets.push(target);
   }
 
   disconnect() {
@@ -69,22 +69,40 @@ class FakeIntersectionObserver {
   }
 }
 
+/** Reports `only` (or every observed element) as in or out of view. */
 function setInView(
   isIntersecting: boolean,
-  intersectionRatio = isIntersecting ? 1 : 0
+  intersectionRatio = isIntersecting ? 1 : 0,
+  only?: Element
 ) {
-  observers.forEach(({ callback, target }) =>
-    callback(
-      [
-        {
-          isIntersecting,
-          intersectionRatio,
-          target,
-        } as IntersectionObserverEntry,
-      ],
-      {} as IntersectionObserver
-    )
+  observers.forEach(({ callback, targets }) =>
+    targets
+      .filter((target) => !only || target === only)
+      .forEach((target) =>
+        callback(
+          [
+            {
+              isIntersecting,
+              intersectionRatio,
+              target,
+            } as IntersectionObserverEntry,
+          ],
+          {} as IntersectionObserver
+        )
+      )
   );
+}
+
+/** An element like the component's: one product card per product, in order. */
+function containerWithCards(count: number) {
+  const container = document.createElement('div');
+  const cards = Array.from({ length: count }, () => {
+    const card = document.createElement('a');
+    card.className = 'cio-agent-overview-product-card';
+    container.appendChild(card);
+    return card;
+  });
+  return { container, cards };
 }
 
 /** A stream that reports its response arrived, as the real client does, unless already aborted. */
@@ -322,6 +340,69 @@ describe('useAgentOverview tracking', () => {
     await waitFor(() => expect(result.current.status).toBe('done'));
     expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledWith(
       expect.objectContaining({ searchResultCount: 2 })
+    );
+  });
+
+  it("should send a set's view only once one of its cards is on screen", async () => {
+    respondWith(
+      streamOf(
+        start,
+        itemResults('Shirt', 's1', ['a']),
+        itemResults('Pants', 's2', ['b']),
+        itemResults('Shorts', 's3', ['c']),
+        end
+      )
+    );
+    const { container, cards } = containerWithCards(3);
+    const { result } = renderHook(() => useAgentOverview(build()));
+    act(() => result.current.viewRef(container));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+
+    act(() => setInView(true, 1, container));
+    expect(tracker.trackAgentResultView).not.toHaveBeenCalled();
+
+    act(() => setInView(true, 0.6, cards[1]));
+    act(() => setInView(true, 0.3, cards[2]));
+    act(() => setInView(true, 1, cards[0]));
+
+    expect(
+      tracker.trackAgentResultView.mock.calls.map(
+        ([params]) => (params as { searchResultId: string }).searchResultId
+      )
+    ).toEqual(['s2', 's1']);
+  });
+
+  it('should leave out of views, and not send clicks for, products without an id', async () => {
+    const set = itemResults('A', 's1', ['a', 'b']);
+    if (set.type === 'item_results') delete set.results[1].data!.id;
+    respondWith(streamOf(start, set, end));
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('done'));
+
+    act(() => setInView(true));
+    expect(tracker.trackAgentResultView).toHaveBeenCalledWith(
+      expect.objectContaining({
+        numResultsViewed: 2,
+        items: [{ itemId: 'id-a' }],
+      })
+    );
+
+    const [section] = result.current.sections;
+    act(() => result.current.trackProductClick(section.products[1], section));
+    expect(tracker.trackAgentResultClick).not.toHaveBeenCalled();
+  });
+
+  it('should send load finished with 0 when the stream breaks before any products', async () => {
+    const controlled = controlledStream();
+    respondWith(controlled.stream);
+    const { result } = renderOverview();
+    act(() => {
+      controlled.push(start);
+      controlled.fail(new TypeError('network error'));
+    });
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ searchResultCount: 0 })
     );
   });
 

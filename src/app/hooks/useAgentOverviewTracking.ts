@@ -54,7 +54,8 @@ function overviewParams(query: string, overview: TrackedOverview) {
  * AI Overview's behavioral events, as the AI Overview tracking contract lists them, sent with the
  * JS client's agent tracker methods. Events carry `cio-ui-agent-overview-<version>` as their client
  * tag, even on a host's client. A method the client lacks is skipped, and so is a view or click on
- * a product set without a `searchResultId`, which those events require.
+ * a product set without a `searchResultId`, or a click on a product without a catalog id, which
+ * those events require.
  */
 export default function useAgentOverviewTracking(
   client: ConstructorIOClient,
@@ -95,15 +96,25 @@ export default function useAgentOverviewTracking(
           ...overviewParams(query, overview),
           searchResultId: section.searchResultId,
           numResultsViewed: section.products.length,
-          items: section.products.map((product) => ({
-            itemId: product.itemId ?? product.url,
-            ...(product.variationId && { variationId: product.variationId }),
-          })),
+          // Behavioral data takes catalog ids only, so products without one are left out.
+          items: section.products.flatMap((product) =>
+            product.itemId
+              ? [
+                  {
+                    itemId: product.itemId,
+                    ...(product.variationId && {
+                      variationId: product.variationId,
+                    }),
+                  },
+                ]
+              : []
+          ),
         });
       },
       trackProductClick: (overview, product, section) => {
         if (
           !section.searchResultId ||
+          !product.itemId ||
           typeof tracker?.trackAgentResultClick !== 'function'
         ) {
           return;
@@ -111,7 +122,7 @@ export default function useAgentOverviewTracking(
         tracker.trackAgentResultClick({
           ...overviewParams(query, overview),
           searchResultId: section.searchResultId,
-          itemId: product.itemId ?? product.url,
+          itemId: product.itemId,
           itemName: product.itemName,
           ...(product.variationId && { variationId: product.variationId }),
         });

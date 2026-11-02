@@ -29,7 +29,7 @@ const {
 | \`resultId\` | \`string \\| null\` | The overview's id, once the stream opens |
 | \`threadId\` | \`string \\| null\` | The conversation thread the overview opened, if any |
 | \`error\` | \`IAgentOverviewError \\| null\` | \`{ status, code, message }\` when \`status\` is \`error\` |
-| \`viewRef\` | \`(node) => void\` | Attach to the element showing the products to send view events. See [Tracking](?path=/docs/agent-overview-tracking--docs) |
+| \`viewRef\` | \`(node) => void\` | Attach to the element showing the products to send view events, one per set once one of its cards is on screen. See [Tracking](?path=/docs/agent-overview-tracking--docs) |
 | \`trackProductClick\` | \`(product, section) => void\` | Sends a product's click event |
 `}
 </Markdown>

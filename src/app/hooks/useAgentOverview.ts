@@ -22,8 +22,10 @@ import useAgentOverviewTracking, {
 
 /** The HTTP status the search endpoint answers when a query gets no overview. */
 const NO_OVERVIEW_STATUS = 422;
-/** How much of the overview must be on screen for its products to count as viewed. */
+/** How much of a product card must be on screen for its set to count as viewed. */
 const VIEW_THRESHOLD = 0.5;
+/** The component's product cards, one per product in the order of `sections`. */
+const CARD_SELECTOR = '.cio-agent-overview-product-card';
 
 type OverviewState = Omit<
   UseAgentOverviewReturn,
@@ -149,16 +151,52 @@ export default function useAgentOverview(
   const overviewRef = useRef<TrackedOverview | null>(null);
   const sectionsRef = useRef<IAgentOverviewSection[]>([]);
   const viewedRef = useRef(new Set<IAgentOverviewSection>());
-  const inViewRef = useRef(false);
+  const containerRef = useRef<HTMLElement | null>(null);
+  const containerInViewRef = useRef(false);
+  const visibleCardsRef = useRef(new Set<Element>());
+  const observedCardsRef = useRef(new WeakSet<Element>());
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const trackingRef = useRef(tracking);
 
+  // A set counts as viewed once one of its cards is half on screen: with several sets in one
+  // carousel, the ones scrolled out of sight aren't. An element without the component's cards
+  // (a custom UI) counts as a whole.
   const sendViews = useCallback(() => {
     const overview = overviewRef.current;
-    if (!inViewRef.current || !overview) return;
-    sectionsRef.current.forEach((section) => {
+    const container = containerRef.current;
+    if (!overview || !container) return;
+
+    const cards = Array.from(container.querySelectorAll(CARD_SELECTOR));
+    const sectionOfCard = sectionsRef.current.flatMap((section) =>
+      section.products.map(() => section)
+    );
+    const visible =
+      cards.length === 0
+        ? containerInViewRef.current
+          ? sectionsRef.current
+          : []
+        : cards.flatMap((card, index) =>
+            visibleCardsRef.current.has(card) && sectionOfCard[index]
+              ? [sectionOfCard[index]]
+              : []
+          );
+
+    visible.forEach((section) => {
       if (viewedRef.current.has(section)) return;
       viewedRef.current.add(section);
       trackingRef.current.trackSectionView(overview, section);
+    });
+  }, []);
+
+  // Cards arrive with the stream, after the element was attached.
+  const observeCards = useCallback(() => {
+    const container = containerRef.current;
+    const observer = observerRef.current;
+    if (!container || !observer) return;
+    container.querySelectorAll(CARD_SELECTOR).forEach((card) => {
+      if (observedCardsRef.current.has(card)) return;
+      observedCardsRef.current.add(card);
+      observer.observe(card);
     });
   }, []);
 
@@ -168,8 +206,16 @@ export default function useAgentOverview(
       ? { resultId: state.resultId, threadId: state.threadId }
       : null;
     sectionsRef.current = state.sections;
+    observeCards();
     sendViews();
-  }, [tracking, state.resultId, state.threadId, state.sections, sendViews]);
+  }, [
+    tracking,
+    state.resultId,
+    state.threadId,
+    state.sections,
+    observeCards,
+    sendViews,
+  ]);
 
   useEffect(() => {
     viewedRef.current = new Set();
@@ -249,8 +295,8 @@ export default function useAgentOverview(
     run().catch((err: unknown) => {
       if (!isCurrent() || isAbort(err)) return;
       // The connection dropped after products were shown: keep them.
+      if (overview) tracking.trackLoadFinished(overview, productCount());
       if (sections.length > 0) {
-        if (overview) tracking.trackLoadFinished(overview, productCount());
         update({ status: 'done' });
         return;
       }
@@ -270,26 +316,38 @@ export default function useAgentOverview(
     return () => controller.abort();
   }, [client, query, pageType, searchTerm, tracking]);
 
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const viewRef = useCallback(
     (node: HTMLElement | null) => {
       observerRef.current?.disconnect();
       observerRef.current = null;
-      inViewRef.current = false;
+      containerRef.current = node;
+      containerInViewRef.current = false;
+      visibleCardsRef.current = new Set();
+      observedCardsRef.current = new WeakSet();
       if (!node || typeof IntersectionObserver === 'undefined') return;
 
       const observer = new IntersectionObserver(
-        ([entry]) => {
-          inViewRef.current =
-            entry.isIntersecting && entry.intersectionRatio >= VIEW_THRESHOLD;
+        (entries) => {
+          entries.forEach((entry) => {
+            const visible =
+              entry.isIntersecting && entry.intersectionRatio >= VIEW_THRESHOLD;
+            if (entry.target === node) {
+              containerInViewRef.current = visible;
+            } else if (visible) {
+              visibleCardsRef.current.add(entry.target);
+            } else {
+              visibleCardsRef.current.delete(entry.target);
+            }
+          });
           sendViews();
         },
         { threshold: VIEW_THRESHOLD }
       );
       observer.observe(node);
       observerRef.current = observer;
+      observeCards();
     },
-    [sendViews]
+    [observeCards, sendViews]
   );
 
   const trackProductClick = useCallback(

@@ -13,7 +13,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 | \`trackAgentSubmit\` | The overview request gets a response | \`intent\` (the query) |
 | \`trackAgentResultLoadStarted\` | The overview starts streaming | \`intent\`, \`intentResultId\`, \`threadId\` |
 | \`trackAgentResultLoadFinished\` | The overview finishes streaming | \`intent\`, \`intentResultId\`, \`threadId\`, \`searchResultCount\` (products shown) |
-| \`trackAgentResultView\` | The overview is half on screen, once per product set | \`intent\`, \`intentResultId\`, \`threadId\`, \`searchResultId\`, \`numResultsViewed\`, \`items\` |
+| \`trackAgentResultView\` | One of a product set's cards is half on screen, once per set | \`intent\`, \`intentResultId\`, \`threadId\`, \`searchResultId\`, \`numResultsViewed\`, \`items\` |
 | \`trackAgentResultClick\` | A product card is clicked | \`intent\`, \`intentResultId\`, \`threadId\`, \`searchResultId\`, \`itemId\`, \`itemName\`, \`variationId\` |
 `}
 </Markdown>
@@ -26,7 +26,7 @@ A `cioJsClient` you pass sends events only if it was created with `sendTrackingE
 
 ## Custom UI
 
-`useAgentOverview` sends submit and the load events on its own. For views and clicks, attach `viewRef` to the element that shows the products, and call `trackProductClick` when a product is clicked:
+`useAgentOverview` sends submit and the load events on its own. For views and clicks, attach `viewRef` to the element that shows the products, and call `trackProductClick` when a product is clicked. Give each product's element the `cio-agent-overview-product-card` class, in product order, so a set's view waits until one of its own products is on screen; without it, every set counts as viewed once the element is half on screen. Products without a catalog id are left out of views and send no click.
 
 ```jsx
 const { message, sections, viewRef, trackProductClick } = useAgentOverview({
@@ -39,6 +39,7 @@ const { message, sections, viewRef, trackProductClick } = useAgentOverview({
     section.products.map((product) => (
       <a
         key={product.url}
+        className="cio-agent-overview-product-card"
         href={product.url}
         onClick={() => trackProductClick(product, section)}
       >

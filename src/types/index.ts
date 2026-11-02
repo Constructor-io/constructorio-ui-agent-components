@@ -171,8 +171,9 @@ export interface UseAgentOverviewReturn {
     section: IAgentOverviewSection
   ) => void;
   /**
-   * Attach to the element that shows the products (`ref={viewRef}`). Each product set's view
-   * event is sent once that element is half on screen.
+   * Attach to the element that shows the products (`ref={viewRef}`). A product set's view event is
+   * sent once one of its `.cio-agent-overview-product-card` elements inside it (one per product, in
+   * order) is half on screen, or, without those cards, once the element itself is.
    */
   viewRef: (node: HTMLElement | null) => void;
 }
