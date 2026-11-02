@@ -41,6 +41,8 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
     status === 'loading' || status === 'streaming' || status === 'done';
   // A first set of several products is a single-category overview: its title heads the row.
   // Sets of one product are categories of a multi-category overview, labelled on each card.
+  // Blanking a string is how a site hides it.
+  const badge = translate('CioAgentOverview.badge', translations);
   const heading =
     sections[0] && sections[0].products.length > 1 ? sections[0].title : '';
 
@@ -50,10 +52,11 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
       style={buildThemeStyles(props.theme)}
     >
       {isOpen && (
-        <div className="cio-agent-overview-section cio-agent-overview-card">
-          <span className="cio-agent-overview-badge">
-            {translate('CioAgentOverview.badge', translations)}
-          </span>
+        <div
+          className="cio-agent-overview-section cio-agent-overview-card"
+          aria-busy={status !== 'done'}
+        >
+          {badge && <span className="cio-agent-overview-badge">{badge}</span>}
           {!hasContent && (
             <Skeleton
               rows={1}

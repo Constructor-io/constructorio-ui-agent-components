@@ -59,7 +59,9 @@ function isAbort(err: unknown): boolean {
 export default function useAgentOverview(
   props: IAgentOverviewProps
 ): UseAgentOverviewReturn {
-  const { apiKey, cioJsClient, query, pageContext, callbacks } = props;
+  const { apiKey, cioJsClient, pageContext, callbacks } = props;
+  // The JavaScript bundle has no types: treat a missing query as a blank one.
+  const query = props.query ?? '';
   const pageType = pageContext?.pageType;
   const searchTerm = pageContext?.searchTerm;
   const client = useMemo(

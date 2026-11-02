@@ -53,7 +53,12 @@ export default function ProductCarousel({
               {items?.map((item, index) => {
                 const product = products[index];
                 return (
-                  <Carousel.Item key={item.id} item={item} index={index}>
+                  // Two products can share a URL (the id), so the position keeps keys unique.
+                  <Carousel.Item
+                    key={`${index}-${item.id}`}
+                    item={item}
+                    index={index}
+                  >
                     <ProductCard
                       product={product}
                       href={getProductUrl?.(product)}
