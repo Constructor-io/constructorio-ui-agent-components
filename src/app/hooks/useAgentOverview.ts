@@ -76,9 +76,10 @@ function toSection(
     .filter((product): product is IProduct => product !== null);
   if (products.length === 0) return null;
   const title = event.title.trim();
-  // A one-product set is one category of a multi-category overview: label the card with it.
+  // A set the API sent as one product is one category of a multi-category overview: label the
+  // card with it. Decided on what the API sent, not on what survives filtering.
   const labelled =
-    products.length === 1 && title
+    event.results.length === 1 && title
       ? [{ ...products[0], label: title }]
       : products;
   return {

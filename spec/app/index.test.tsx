@@ -139,6 +139,16 @@ describe('CioAgentOverview', () => {
     ).toHaveClass('cio-agent-overview-section-title');
   });
 
+  it('should head a single-category set even when filtering leaves one product', async () => {
+    const set = itemResults('Summer Shirts', 's1', ['a', 'b']);
+    if (set.type === 'item_results') delete set.results[1].data!.image_url;
+    mockedStream.mockReturnValue(streamOf(start, set, end));
+    renderOverview();
+    expect(
+      await screen.findByRole('heading', { name: 'Summer Shirts' })
+    ).toBeInTheDocument();
+  });
+
   it('should not head a multi-category overview', async () => {
     mockedStream.mockReturnValue(
       streamOf(

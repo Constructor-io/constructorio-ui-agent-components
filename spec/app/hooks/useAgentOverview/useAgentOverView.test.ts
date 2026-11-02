@@ -113,6 +113,19 @@ describe('useAgentOverview', () => {
     expect(result.current.sections[0].products[0].label).toBe('Casual Shirt');
   });
 
+  it('should not label a set of several products that loses all but one to filtering', async () => {
+    const set = itemResults('Summer Shirts', 's1', ['a', 'b', 'c']);
+    if (set.type === 'item_results') {
+      delete set.results[1].data!.image_url;
+      delete set.results[2].data!.image_url;
+    }
+    mockedStream.mockReturnValue(streamOf(start, set, end));
+    const { result } = renderHook(() => useAgentOverview(build()));
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(result.current.sections[0].products).toHaveLength(1);
+    expect(result.current.sections[0].products[0].label).toBeUndefined();
+  });
+
   it('should not label sets of several products', async () => {
     mockedStream.mockReturnValue(
       streamOf(start, itemResults('Summer Shirts', 's1', ['a', 'b']), end)
