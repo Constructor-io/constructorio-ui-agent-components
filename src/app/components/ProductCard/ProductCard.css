@@ -13,9 +13,14 @@
 }
 
 .cio-agent-overview-product-label {
+  margin-bottom: var(--cio-spacing-md);
   font-family: var(--cio-font-family);
-  font-size: var(--cio-font-size-xs);
-  font-weight: var(--cio-font-weight-medium);
-  color: var(--cio-color-muted);
+  font-size: var(--cio-font-size-base);
+  font-weight: var(--cio-font-weight-semibold);
+  color: var(--cio-color-primary);
   line-height: var(--cio-line-height);
+  /* One line, so the cards in a row stay level. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
