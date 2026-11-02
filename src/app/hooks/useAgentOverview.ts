@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   IAgentOverviewError,
@@ -16,10 +16,21 @@ import {
   streamAgentOverview,
 } from '../services/agentOverviewClient';
 
+import useAgentOverviewTracking, {
+  type TrackedOverview,
+} from './useAgentOverviewTracking';
+
 /** The HTTP status the search endpoint answers when a query gets no overview. */
 const NO_OVERVIEW_STATUS = 422;
+/** How much of the overview must be on screen for its products to count as viewed. */
+const VIEW_THRESHOLD = 0.5;
 
-function initialState(query: string): UseAgentOverviewReturn {
+type OverviewState = Omit<
+  UseAgentOverviewReturn,
+  'trackProductClick' | 'viewRef'
+>;
+
+function initialState(query: string): OverviewState {
   return {
     status: query.trim() ? 'loading' : 'idle',
     message: '',
@@ -86,9 +97,16 @@ function notify(callback: () => void): void {
  * Streams the AI Overview for `query` from `/v1/agent_insights/search`: the overview message,
  * then each product set as it arrives. A new query aborts the previous request.
  *
+ * Sends the overview's tracking events: submit, load started and load finished on its own; a
+ * view for each product set once the element given to `viewRef` is half on screen; and a click
+ * when you call `trackProductClick`.
+ *
  * @example
  * ```tsx
- * const { status, message, sections } = useAgentOverview({ apiKey: 'YOUR_API_KEY', query });
+ * const { status, message, sections, viewRef, trackProductClick } = useAgentOverview({
+ *   apiKey: 'YOUR_API_KEY',
+ *   query,
+ * });
  * ```
  */
 export default function useAgentOverview(
@@ -99,10 +117,12 @@ export default function useAgentOverview(
   const query = props.query ?? '';
   const pageType = pageContext?.pageType;
   const searchTerm = pageContext?.searchTerm;
+
   const client = useMemo(
     () => createAgentOverviewClient({ apiKey, cioJsClient }),
     [apiKey, cioJsClient]
   );
+  const tracking = useAgentOverviewTracking(client, query);
 
   const [state, setState] = useState(() => initialState(query));
 
@@ -125,12 +145,39 @@ export default function useAgentOverview(
     callbacksRef.current = callbacks;
   });
 
+  // What view and click events need, read from callbacks that outlive a render.
+  const overviewRef = useRef<TrackedOverview | null>(null);
+  const sectionsRef = useRef<IAgentOverviewSection[]>([]);
+  const viewedRef = useRef(new Set<IAgentOverviewSection>());
+  const inViewRef = useRef(false);
+  const trackingRef = useRef(tracking);
+
+  const sendViews = useCallback(() => {
+    const overview = overviewRef.current;
+    if (!inViewRef.current || !overview) return;
+    sectionsRef.current.forEach((section) => {
+      if (viewedRef.current.has(section)) return;
+      viewedRef.current.add(section);
+      trackingRef.current.trackSectionView(overview, section);
+    });
+  }, []);
+
   useEffect(() => {
+    trackingRef.current = tracking;
+    overviewRef.current = state.resultId
+      ? { resultId: state.resultId, threadId: state.threadId }
+      : null;
+    sectionsRef.current = state.sections;
+    sendViews();
+  }, [tracking, state.resultId, state.threadId, state.sections, sendViews]);
+
+  useEffect(() => {
+    viewedRef.current = new Set();
     if (!query.trim()) return undefined;
 
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted;
-    const update = (patch: Partial<UseAgentOverviewReturn>) => {
+    const update = (patch: Partial<OverviewState>) => {
       if (isCurrent()) setState((prev) => ({ ...prev, ...patch }));
     };
 
@@ -140,6 +187,7 @@ export default function useAgentOverview(
     async function run() {
       const messages: string[] = [];
       let serverError: IAgentOverviewError | null = null;
+      let overview: TrackedOverview | null = null;
 
       for await (const event of streamAgentOverview(
         client,
@@ -150,14 +198,22 @@ export default function useAgentOverview(
               ? { pageType, searchTerm }
               : undefined,
         },
-        controller.signal
+        controller.signal,
+        () => {
+          if (isCurrent()) tracking.trackSubmit();
+        }
       )) {
         if (!isCurrent()) return;
         if (event.type === 'start') {
-          update({
-            status: 'streaming',
+          overview = {
             resultId: event.resultId,
             threadId: event.threadId ?? null,
+          };
+          tracking.trackLoadStarted(overview);
+          update({
+            status: 'streaming',
+            resultId: overview.resultId,
+            threadId: overview.threadId,
           });
         } else if (event.type === 'message') {
           messages.push(event.text);
@@ -176,6 +232,15 @@ export default function useAgentOverview(
       }
 
       if (!isCurrent()) return;
+      if (overview) {
+        tracking.trackLoadFinished(
+          overview,
+          sections.reduce(
+            (count, section) => count + section.products.length,
+            0
+          )
+        );
+      }
       if (sections.length > 0) {
         update({ status: 'done' });
       } else if (serverError) {
@@ -208,7 +273,39 @@ export default function useAgentOverview(
     });
 
     return () => controller.abort();
-  }, [client, query, pageType, searchTerm]);
+  }, [client, query, pageType, searchTerm, tracking]);
 
-  return state;
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const viewRef = useCallback(
+    (node: HTMLElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      inViewRef.current = false;
+      if (!node || typeof IntersectionObserver === 'undefined') return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          inViewRef.current = entry.isIntersecting;
+          sendViews();
+        },
+        { threshold: VIEW_THRESHOLD }
+      );
+      observer.observe(node);
+      observerRef.current = observer;
+    },
+    [sendViews]
+  );
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  const trackProductClick = useCallback(
+    (product: IProduct, section: IAgentOverviewSection) => {
+      const overview = overviewRef.current;
+      if (overview)
+        trackingRef.current.trackProductClick(overview, product, section);
+    },
+    []
+  );
+
+  return { ...state, trackProductClick, viewRef };
 }

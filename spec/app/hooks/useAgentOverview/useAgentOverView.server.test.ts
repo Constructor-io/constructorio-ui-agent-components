@@ -23,6 +23,10 @@ describe(`${useAgentOverview.name}: server`, () => {
       resultId: null,
       threadId: null,
       error: null,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      trackProductClick: expect.any(Function),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      viewRef: expect.any(Function),
     });
     expect(streamAgentOverview).not.toHaveBeenCalled();
   });

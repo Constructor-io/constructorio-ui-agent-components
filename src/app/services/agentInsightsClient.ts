@@ -156,13 +156,19 @@ async function toRequestError(
  *
  * @throws AgentInsightsRequestError when the endpoint answers with an error status before
  *   streaming (for `search`, 422 means the query gets no overview). Aborting `signal` rejects with
- *   the `fetch` AbortError.
+ *   the `fetch` AbortError. `onResponse` is called once the response arrives, whatever its status,
+ *   so an aborted request never reaches it.
  */
 export async function* streamAgentInsights(
   client: ConstructorIOClient,
   mode: AgentInsightsMode,
   body: object,
-  options: { clientTag?: string; threadId?: string; signal?: AbortSignal } = {}
+  options: {
+    clientTag?: string;
+    threadId?: string;
+    signal?: AbortSignal;
+    onResponse?: () => void;
+  } = {}
 ): AsyncGenerator<AgentInsightsEvent> {
   const url = buildAgentInsightsUrl(getClientIdentity(client), mode, options);
   const response = await fetch(url, {
@@ -174,6 +180,7 @@ export async function* streamAgentInsights(
     body: JSON.stringify(body),
     signal: options.signal,
   });
+  options.onResponse?.();
 
   if (!response.ok) throw await toRequestError(response);
   if (!response.body) {

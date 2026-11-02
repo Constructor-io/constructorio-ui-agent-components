@@ -165,6 +165,16 @@ export interface UseAgentOverviewReturn {
   threadId: string | null;
   /** Set when `status` is `error`. */
   error: IAgentOverviewError | null;
+  /** Sends the click event for a product. Call it from your product card's click handler. */
+  trackProductClick: (
+    product: IProduct,
+    section: IAgentOverviewSection
+  ) => void;
+  /**
+   * Attach to the element that shows the products (`ref={viewRef}`). Each product set's view
+   * event is sent once that element is half on screen.
+   */
+  viewRef: (node: HTMLElement | null) => void;
 }
 
 /** A product item within a recommendation section. */

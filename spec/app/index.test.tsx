@@ -1,3 +1,4 @@
+// cspell:ignore unstub -- vitest's vi.unstubAllGlobals
 import {
   act,
   fireEvent,
@@ -329,6 +330,67 @@ describe('CioAgentOverview', () => {
     });
     expect(root(container).style.getPropertyValue('--cio-color-primary')).toBe(
       '#123456'
+    );
+  });
+});
+
+describe('CioAgentOverview tracking', () => {
+  afterEach(() => {
+    mockedStream.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  it('should send the click event before calling onProductClick', async () => {
+    const order: string[] = [];
+    const tracker = {
+      options: { apiKey: 'k' },
+      trackAgentResultClick: vi.fn(() => order.push('track')),
+    };
+    const onProductClick = vi.fn((event: React.MouseEvent) => {
+      event.preventDefault();
+      order.push('callback');
+    });
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('Pants', 's2', ['Chinos']), end)
+    );
+    const { container } = render(
+      <CioAgentOverview
+        cioJsClient={{ options: tracker.options, tracker } as never}
+        query="I want to buy casual style"
+        callbacks={{ onProductClick }}
+      />
+    );
+
+    await waitFor(() =>
+      expect(find(container, 'a[href="/p/Chinos"]')).toBeInTheDocument()
+    );
+    fireEvent.click(find(container, 'a[href="/p/Chinos"]')!);
+
+    expect(order).toEqual(['track', 'callback']);
+    expect(tracker.trackAgentResultClick).toHaveBeenCalledWith(
+      expect.objectContaining({ searchResultId: 's2', itemName: 'Chinos' })
+    );
+  });
+
+  it('should observe the overview section for views', async () => {
+    const observed: Element[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe(target: Element) {
+          observed.push(target);
+        }
+
+        disconnect() {}
+      }
+    );
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('A', 's1', ['a']), end)
+    );
+    const { container } = renderOverview();
+
+    await waitFor(() =>
+      expect(observed).toContain(find(container, '.cio-agent-overview-section'))
     );
   });
 });

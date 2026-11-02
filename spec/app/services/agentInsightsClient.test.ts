@@ -135,6 +135,28 @@ describe('agentInsightsClient', () => {
       expect(init.signal).toBe(controller.signal);
     });
 
+    it('should call onResponse once the response arrives, whatever its status', async () => {
+      const onResponse = vi.fn();
+      fetchMock.mockResolvedValue(new Response('{}', { status: 422 }));
+
+      await collect(
+        streamAgentInsights(clientWith({}), 'search', {}, { onResponse })
+      ).catch(() => {});
+
+      expect(onResponse).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onResponse when the request fails', async () => {
+      const onResponse = vi.fn();
+      fetchMock.mockRejectedValue(new DOMException('aborted', 'AbortError'));
+
+      await collect(
+        streamAgentInsights(clientWith({}), 'search', {}, { onResponse })
+      ).catch(() => {});
+
+      expect(onResponse).not.toHaveBeenCalled();
+    });
+
     it('should yield typed events for start, message, item_results, server_error and end', async () => {
       const base = { result_id: 'r1', thread_id: 't1' };
       fetchMock.mockResolvedValue(

@@ -55,7 +55,8 @@ describe('useAgentOverview', () => {
     expect(mockedStream).toHaveBeenCalledWith(
       cioJsClient,
       { query: 'I want to buy casual style', pageContext: undefined },
-      expect.any(AbortSignal)
+      expect.any(AbortSignal),
+      expect.any(Function)
     );
 
     act(() => controlled.push(start));

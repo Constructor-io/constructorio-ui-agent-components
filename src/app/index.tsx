@@ -26,7 +26,8 @@ import './index.css';
  * ```
  */
 export default function CioAgentOverview(props: IAgentOverviewProps) {
-  const { status, message, sections } = useAgentOverview(props);
+  const { status, message, sections, trackProductClick, viewRef } =
+    useAgentOverview(props);
   const { callbacks, translations } = props;
 
   const paragraphs = message.split('\n\n').filter((text) => text.trim());
@@ -58,6 +59,7 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
         <div
           className="cio-agent-overview-section cio-agent-overview-card"
           aria-busy={status !== 'done'}
+          ref={viewRef}
         >
           {badge && <span className="cio-agent-overview-badge">{badge}</span>}
           {!hasContent && (
@@ -88,16 +90,12 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
               )}
               translations={translations}
               getProductUrl={callbacks?.getProductUrl}
-              onProductClick={
-                callbacks?.onProductClick
-                  ? (event, product) => {
-                      const section = sectionOf.get(product);
-                      if (section) {
-                        callbacks.onProductClick!(event, product, section);
-                      }
-                    }
-                  : undefined
-              }
+              onProductClick={(event, product) => {
+                const section = sectionOf.get(product);
+                if (!section) return;
+                trackProductClick(product, section);
+                callbacks?.onProductClick?.(event, product, section);
+              }}
             />
           )}
           {hasContent && products.length === 0 && (

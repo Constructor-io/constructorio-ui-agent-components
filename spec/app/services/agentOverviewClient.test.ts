@@ -60,8 +60,14 @@ describe('agentOverviewClient', () => {
           shopper_input: 'gift for dad',
           page_context: { page_type: 'plp', search_term: 'gift for dad' },
         },
-        { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal }
+        { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal, onResponse: undefined }
       );
+    });
+
+    it('should pass onResponse through', () => {
+      const onResponse = vi.fn();
+      streamAgentOverview(hostClient, { query: 'q' }, undefined, onResponse);
+      expect(mockedStream.mock.calls[0][3]).toMatchObject({ onResponse });
     });
 
     it('should use pageContext when given', () => {

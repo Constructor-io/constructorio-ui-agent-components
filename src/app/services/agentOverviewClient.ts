@@ -30,11 +30,15 @@ export function createAgentOverviewClient({
   throw new Error('Either apiKey or cioJsClient must be provided');
 }
 
-/** Streams the AI Overview for a search from `POST /v1/agent_insights/search`. */
+/**
+ * Streams the AI Overview for a search from `POST /v1/agent_insights/search`. `onResponse` is
+ * called when the response arrives, which is when the overview counts as submitted.
+ */
 export function streamAgentOverview(
   client: ConstructorIOClient,
   request: { query: string; pageContext?: IAgentOverviewPageContext },
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onResponse?: () => void
 ): AsyncGenerator<AgentInsightsEvent> {
   const { query, pageContext } = request;
   return streamAgentInsights(
@@ -47,6 +51,6 @@ export function streamAgentOverview(
         search_term: pageContext?.searchTerm ?? query,
       },
     },
-    { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal }
+    { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal, onResponse }
   );
 }
