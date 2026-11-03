@@ -53,6 +53,7 @@ export const argTypes: Partial<ArgTypes<DemoArgs>> = {
   },
   agenticPromises: {
     control: false,
+    table: { type: { summary: 'IAgenticPromise[] | null' } },
     description:
       '`response.agentic_promises` from your Constructor search response. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).',
   },
@@ -65,6 +66,7 @@ export const argTypes: Partial<ArgTypes<DemoArgs>> = {
     description: 'See [Callbacks](?path=/docs/agent-overview-callbacks--docs).',
   },
   translations: {
+    table: { type: { summary: 'Translations' } },
     description:
       'UI string overrides. See [Customization](?path=/docs/agent-overview-customization--docs#translations).',
   },

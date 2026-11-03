@@ -4,7 +4,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 # useAgentOverview
 
-Streams the AI Overview that a search response promised. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); it uses `agenticPromises`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+Streams the AI Overview that a search response promised. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs) and uses only `agenticPromises`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ```js
 const { status, message, sections, resultId, threadId, error, displayName } =
@@ -15,7 +15,7 @@ const { status, message, sections, resultId, threadId, error, displayName } =
   {`
 | Returns | Type | |
 |---|---|---|
-| \`status\` | \`'idle' \\| 'loading' \\| 'streaming' \\| 'done' \\| 'no-overview' \\| 'error'\` | \`idle\` without an AI Overview promise; \`loading\` until the stream opens; \`streaming\` while it arrives |
+| \`status\` | \`'idle' \\| 'loading' \\| 'streaming' \\| 'done' \\| 'no-overview' \\| 'error'\` | \`idle\` without an AI Overview promise; \`loading\` until the stream opens; \`streaming\` while it arrives; then \`done\`, \`no-overview\` (the agent turned it down) or \`error\` |
 | \`message\` | \`string\` | The overview's text. Several messages are joined with a blank line |
 | \`sections\` | \`IAgentOverviewSection[]\` | \`{ title, searchResultId, products }\`, one per product set, in the order they arrived |
 | \`resultId\` | \`string \\| null\` | The overview's id, once the stream opens |
@@ -25,4 +25,4 @@ const { status, message, sections, resultId, threadId, error, displayName } =
 `}
 </Markdown>
 
-The message usually arrives before the products. A set whose products have no name or image is left out. A `server_error` ends in `error`, even after products arrived. If the connection drops after some products arrived, `status` is `done` with those products.
+The message usually arrives before the products. Products without a name or image are dropped, and a set left with none is dropped too. A `server_error` ends in `error`, even after products arrived. If the connection drops after some products arrived, `status` is `done` with those products.

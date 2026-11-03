@@ -19,3 +19,15 @@
   width: 70%;
   margin: auto auto;
 }
+
+/* Wide tables scroll inside themselves, and long code wraps, so docs pages never scroll sideways. */
+.sbdocs-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.sbdocs-content :not(pre) > code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

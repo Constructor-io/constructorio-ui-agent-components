@@ -25,7 +25,7 @@ Both builds use modern JavaScript, such as optional chaining. If your bundler's 
 That's expected for many searches:
 
 - **No promise.** Simple keyword searches, such as a brand or a product name, usually have no AI Overview promise in the search response, so there's no request.
-- **The agent turns it down.** It answers the promise with a 204 (nothing produced) or a 422 (a query it finds unsuitable). The component calls `callbacks.onNoOverview`.
+- **The agent turns it down.** It answers the promise with a 204 (nothing produced) or a 422 (a query it finds unsuitable), or the stream ends with no products to show. The component calls `callbacks.onNoOverview`.
 - **It fails.** Any other status, or a `server_error` while streaming, which also hides products already shown. The component calls `callbacks.onError`.
 
 If no search ever shows one, check that you pass the response's `agentic_promises`, not the whole response, and see the next question.
@@ -36,7 +36,7 @@ AI Overview must be turned on for your index. A 400 from the callback, or no `ag
 
 ## Agent Overview: A/B testing
 
-Not supported yet. An A/B test compares views and clicks, and Agent Overview doesn't send Constructor behavioral events yet.
+Not supported yet. An A/B test compares views and clicks, and Agent Overview doesn't [send behavioral events](?path=/docs/agent-overview-callbacks--docs#tracking) yet.
 
 ## Agent Overview: it keeps reloading
 
