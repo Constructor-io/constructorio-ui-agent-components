@@ -20,7 +20,7 @@ const meta: Meta<DemoArgs> = {
     docs: {
       description: {
         component:
-          "Streams the AI Overview that your Constructor search response promised: a short summary, then the products picked for the search. Pass the response's `agentic_promises`. Renders nothing when there's no AI Overview promise or the agent declines it. The default export. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).",
+          "Streams the AI Overview that your Constructor search response promised: a short summary, then the products picked for the search. Pass the response's `agentic_promises`. The default export. See the [Integration Guide](?path=/docs/agent-overview-integration-guide--docs).",
       },
     },
   },

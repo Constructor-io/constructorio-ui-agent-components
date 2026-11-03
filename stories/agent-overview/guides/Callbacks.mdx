@@ -4,6 +4,12 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 # Callbacks
 
+## Tracking
+
+Agent Overview doesn't send Constructor behavioral events yet. To measure it now, send your own from these callbacks.
+
+## Callbacks
+
 ```jsx
 <CioAgentOverview
   agenticPromises={searchResponse.response.agentic_promises}
@@ -22,11 +28,13 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 <Markdown>
   {`
-| Callback | Called |
-|---|---|
-| \`onProductClick(event, product, section)\` | When a product card is clicked, with the product set it came from. The card is a link: call \`event.preventDefault()\` to navigate yourself |
-| \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
-| \`onNoOverview()\` | When search promised an overview but the agent turned it down: a 204 (nothing produced) or a 422 (a query it finds unsuitable). The component renders nothing. Not called for a search without a promise, which makes no request |
-| \`onError(error)\` | When the overview fails, with \`{ status, code, message }\`: any other status but 200, or a \`server_error\` while it streams, which hides products already shown. \`status\` is 0 when there was no response. The component renders nothing |
+| Callback | Signature | Fires when |
+|---|---|---|
+| \`onProductClick\` | \`(event, product, section)\` | A product card is clicked, with the product set it came from. The card is a link: call \`event.preventDefault()\` to navigate yourself |
+| \`getProductUrl\` | \`(product) => string\` | Each product card renders its link. Default \`product.url\` |
+| \`onNoOverview\` | \`()\` | Search promised an overview and the agent turned it down. Not for a search without a promise, which makes no request |
+| \`onError\` | \`(error)\` | The overview fails, with \`{ status, code, message }\`. \`status\` is 0 when there was no response |
 `}
 </Markdown>
+
+In both of the last two cases nothing renders. See [when nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders).

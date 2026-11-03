@@ -6,7 +6,15 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 ## `Module parse failed: Unexpected token`
 
-Your bundler can't parse the ESNext build. Resolve the package with `require` to get the CommonJS build, which is ES2015.
+Both builds use modern JavaScript, such as optional chaining. If your bundler's loader skips `node_modules`, transpile this package too. With webpack and Babel:
+
+```js
+{
+  test: /\.m?js$/,
+  include: /node_modules\/@constructor-io\/constructorio-ui-agent-components/,
+  use: 'babel-loader',
+}
+```
 
 ## ESLint: `Unable to resolve path to module '…/styles.css'`
 
@@ -14,7 +22,21 @@ Your bundler can't parse the ESNext build. Resolve the package with `require` to
 
 ## Agent Overview: nothing renders
 
-Simple keyword searches, such as a brand or a product name, usually have no AI Overview promise in the search response, so there's no request and nothing renders. A promise the agent turns down (a 204, or a 422 for a query it finds unsuitable) renders nothing and calls `callbacks.onNoOverview`; a failed request, or a `server_error` while streaming, renders nothing and calls `callbacks.onError`. Check too that AI Overview is turned on for your index (descriptive searches have `agentic_promises` in the search response), and that you pass the response's `agentic_promises`, not the whole response.
+That's expected for many searches:
+
+- **No promise.** Simple keyword searches, such as a brand or a product name, usually have no AI Overview promise in the search response, so there's no request.
+- **The agent turns it down.** It answers the promise with a 204 (nothing produced) or a 422 (a query it finds unsuitable). The component calls `callbacks.onNoOverview`.
+- **It fails.** Any other status, or a `server_error` while streaming, which also hides products already shown. The component calls `callbacks.onError`.
+
+If no search ever shows one, check that you pass the response's `agentic_promises`, not the whole response, and see the next question.
+
+## Agent Overview: requests return errors, or no search has a promise
+
+AI Overview must be turned on for your index. A 400 from the callback, or no `agentic_promises` even for descriptive searches, means it isn't. Contact your Constructor Integration Engineer.
+
+## Agent Overview: A/B testing
+
+Not supported yet. An A/B test compares views and clicks, and Agent Overview doesn't send Constructor behavioral events yet.
 
 ## Agent Overview: it keeps reloading
 

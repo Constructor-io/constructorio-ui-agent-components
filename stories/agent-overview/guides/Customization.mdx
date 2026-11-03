@@ -20,7 +20,7 @@ Every rule is scoped to `.cio-agent-overview-root`, and every element has a `cio
     .cio-agent-overview-carousel       the products
 ```
 
-While it loads, the card holds the badge and a `.cio-agent-overview-skeleton-section`. When there's no AI Overview promise, the agent declines it, or the request fails, the root is empty. The card uses `backgroundMuted` and `borderColor`.
+While it loads, the card holds the badge and a `.cio-agent-overview-skeleton-section`. When [nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders), the root is empty.
 
 The component fills its container's width:
 
@@ -28,10 +28,11 @@ The component fills its container's width:
 
 ## Theming
 
-`theme` sets CSS custom properties on the root.
+`theme` sets CSS custom properties on the root. The card uses `backgroundMuted` and `borderColor`.
 
 ```jsx
 <CioAgentOverview
+  agenticPromises={…}
   theme={{
     fontFamily: 'Inter, sans-serif',
     primaryColor: '#1a1a1a',
@@ -61,7 +62,7 @@ The component fills its container's width:
 | \`productNameColor\` | \`--cio-color-product-name\` | Product names |
 | \`borderColor\` | \`--cio-color-border\` | Cards and sections |
 | \`background\` | \`--cio-color-background\` | Root container |
-| \`backgroundMuted\` | \`--cio-color-background-muted\` | Sections, and the AI Overview card |
+| \`backgroundMuted\` | \`--cio-color-background-muted\` | The AI Overview card |
 | \`hoverAccentColor\` | \`--cio-color-hover-accent\` | Hover states |
 | \`arrowSize\` | \`--cio-arrow-size\` | Carousel arrows |
 | \`arrowBorderRadius\` | \`--cio-arrow-border-radius\` | |
@@ -80,6 +81,7 @@ The component fills its container's width:
 
 ```jsx
 <CioAgentOverview
+  agenticPromises={…}
   translations={{ 'CioAgentOverview.badge': 'Resumen de IA' }}
 />
 ```
@@ -88,9 +90,7 @@ The component fills its container's width:
   {`
 | Key | Default |
 |---|---|
-| \`CioAgentOverview.badge\` | AI Overview |
-| \`CioAgentOverview.section.aiBadge\` | Generated with AI (\`RecommendationSection\` only) |
-| \`CioAgentOverview.section.viewMore\` | View More (\`RecommendationSection\` only) |
+| \`CioAgentOverview.badge\` | The promise's \`pod.display_name\` ("AI Overview") |
 | \`CioAgentOverview.skeleton.thinking\` | Thinking |
 | \`CioAgentOverview.carousel.previous\` | Show previous items |
 | \`CioAgentOverview.carousel.next\` | Show next items |

@@ -74,6 +74,7 @@ Dispatch the [Deploy Storybook](https://github.com/Constructor-io/constructorio-
 ## Related Libraries
 
 - [@constructor-io/constructorio-client-javascript](https://github.com/Constructor-io/constructorio-client-javascript) - JavaScript client for Constructor.io API
+- [@constructor-io/constructorio-ui-asa](https://github.com/Constructor-io/constructorio-ui-asa) - AI Shopping Assistant UI library
 - [@constructor-io/constructorio-ui-pia](https://github.com/Constructor-io/constructorio-ui-pia) - AI Product Insights Agent UI library
 - [@constructor-io/constructorio-ui-autocomplete](https://github.com/Constructor-io/constructorio-ui-autocomplete) - Autocomplete UI library
 - [@constructor-io/constructorio-ui-plp](https://github.com/Constructor-io/constructorio-ui-plp) - Product Listing Page UI library
