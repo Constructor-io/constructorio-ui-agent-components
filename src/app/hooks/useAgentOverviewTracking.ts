@@ -50,6 +50,15 @@ function overviewParams(query: string, overview: TrackedOverview) {
   };
 }
 
+/** Sends one event. A tracker exception is logged, so tracking can't stop the overview rendering. */
+function send(event: () => void): void {
+  try {
+    event();
+  } catch (err) {
+    console.error('CioAgentOverview: tracking failed', err);
+  }
+}
+
 /**
  * AI Overview's behavioral events, as the AI Overview tracking contract lists them, sent with the
  * JS client's agent tracker methods. Events carry `cio-ui-agent-overview-<version>` as their client
@@ -70,20 +79,24 @@ export default function useAgentOverviewTracking(
     return {
       trackSubmit: () => {
         if (typeof tracker?.trackAgentSubmit !== 'function') return;
-        tracker.trackAgentSubmit({ intent: query });
+        send(() => tracker.trackAgentSubmit?.({ intent: query }));
       },
       trackLoadStarted: (overview) => {
         if (typeof tracker?.trackAgentResultLoadStarted !== 'function') return;
-        tracker.trackAgentResultLoadStarted(overviewParams(query, overview));
+        send(() =>
+          tracker.trackAgentResultLoadStarted?.(overviewParams(query, overview))
+        );
       },
       trackLoadFinished: (overview, searchResultCount) => {
         if (typeof tracker?.trackAgentResultLoadFinished !== 'function') {
           return;
         }
-        tracker.trackAgentResultLoadFinished({
-          ...overviewParams(query, overview),
-          searchResultCount,
-        });
+        send(() =>
+          tracker.trackAgentResultLoadFinished?.({
+            ...overviewParams(query, overview),
+            searchResultCount,
+          })
+        );
       },
       trackSectionView: (overview, section) => {
         if (
@@ -92,24 +105,27 @@ export default function useAgentOverviewTracking(
         ) {
           return;
         }
-        tracker.trackAgentResultView({
-          ...overviewParams(query, overview),
-          searchResultId: section.searchResultId,
-          numResultsViewed: section.products.length,
-          // Behavioral data takes catalog ids only, so products without one are left out.
-          items: section.products.flatMap((product) =>
-            product.itemId
-              ? [
-                  {
-                    itemId: product.itemId,
-                    ...(product.variationId && {
-                      variationId: product.variationId,
-                    }),
-                  },
-                ]
-              : []
-          ),
-        });
+        const { searchResultId } = section;
+        send(() =>
+          tracker.trackAgentResultView?.({
+            ...overviewParams(query, overview),
+            searchResultId,
+            numResultsViewed: section.products.length,
+            // Behavioral data takes catalog ids only, so products without one are left out.
+            items: section.products.flatMap((product) =>
+              product.itemId
+                ? [
+                    {
+                      itemId: product.itemId,
+                      ...(product.variationId && {
+                        variationId: product.variationId,
+                      }),
+                    },
+                  ]
+                : []
+            ),
+          })
+        );
       },
       trackProductClick: (overview, product, section) => {
         if (
@@ -119,13 +135,17 @@ export default function useAgentOverviewTracking(
         ) {
           return;
         }
-        tracker.trackAgentResultClick({
-          ...overviewParams(query, overview),
-          searchResultId: section.searchResultId,
-          itemId: product.itemId,
-          itemName: product.itemName,
-          ...(product.variationId && { variationId: product.variationId }),
-        });
+        const { searchResultId } = section;
+        const { itemId } = product;
+        send(() =>
+          tracker.trackAgentResultClick?.({
+            ...overviewParams(query, overview),
+            searchResultId,
+            itemId,
+            itemName: product.itemName,
+            ...(product.variationId && { variationId: product.variationId }),
+          })
+        );
       },
     };
   }, [hostTracker, query]);

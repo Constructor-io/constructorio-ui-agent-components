@@ -246,6 +246,52 @@ describe('useAgentOverview tracking', () => {
     );
   });
 
+  it('should send load finished with 0 when the stream ends without products', async () => {
+    respondWith(streamOf(start, message('Hmm.'), end));
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('no-overview'));
+    expect(tracker.trackAgentResultLoadStarted).toHaveBeenCalledTimes(1);
+    expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledTimes(1);
+    expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ searchResultCount: 0 })
+    );
+  });
+
+  it('should finish the overview and send load finished once when the tracker throws', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    // withLibraryTag retries a failed call untagged; a tracker already on the tag isn't wrapped.
+    tracker.options.version = AGENT_OVERVIEW_CLIENT_TAG;
+    const bug = new Error('tracker bug');
+    vi.mocked(tracker.trackAgentResultLoadFinished).mockImplementation(() => {
+      throw bug;
+    });
+    respondWith(streamOf(start, itemResults('A', 's1', ['a']), end));
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    expect(tracker.trackAgentResultLoadFinished).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), bug);
+    consoleError.mockRestore();
+  });
+
+  it('should not throw from trackProductClick when click tracking throws', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    tracker.options.version = AGENT_OVERVIEW_CLIENT_TAG;
+    vi.mocked(tracker.trackAgentResultClick).mockImplementation(() => {
+      throw new Error('tracker bug');
+    });
+    respondWith(streamOf(start, itemResults('A', 's1', ['a']), end));
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('done'));
+    const [section] = result.current.sections;
+    expect(() =>
+      result.current.trackProductClick(section.products[0], section)
+    ).not.toThrow();
+    expect(tracker.trackAgentResultClick).toHaveBeenCalledTimes(1);
+    vi.mocked(console.error).mockRestore();
+  });
+
   it('should send only submit on a 422', async () => {
     const controlled = controlledStream();
     respondWith(controlled.stream);

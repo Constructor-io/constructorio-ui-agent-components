@@ -18,7 +18,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 `}
 </Markdown>
 
-A search that gets no overview sends only `trackAgentSubmit`. JavaScript clients older than 2.91.0 leave `threadId` out of the events.
+A search the endpoint turns down (a 422) sends only `trackAgentSubmit`. A stream that ends without products also sends the two load events, with a `searchResultCount` of 0, and then nothing shows. A tracking call that throws is logged to the console and doesn't stop the overview. JavaScript clients older than 2.91.0 leave `threadId` out of the events.
 
 ## Your own JavaScript client
 
