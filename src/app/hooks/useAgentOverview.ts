@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type {
   IAgenticPromise,
@@ -15,6 +15,13 @@ import {
   findAiOverviewPromise,
   streamAgentOverview,
 } from '../services/agentOverviewClient';
+
+/** useLayoutEffect in the browser; on the server, where it warns, useEffect (which doesn't run). */
+const useIsomorphicLayoutEffect =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+/** The hook's state, tagged with the request it belongs to. */
+type OverviewState = UseAgentOverviewReturn & { key: string };
 
 /**
  * The statuses with which the agent turns down a promised overview: 204 when it produced nothing,
@@ -95,7 +102,10 @@ export default function useAgentOverview(
   const promise = findAiOverviewPromise(props.agenticPromises);
   const key = requestKey(promise);
 
-  const [state, setState] = useState(() => initialState(promise));
+  const [state, setState] = useState<OverviewState>(() => ({
+    ...initialState(promise),
+    key,
+  }));
 
   // A new request starts from a clean state in the same render, so no frame shows the previous
   // search's overview (React's "adjusting state when a prop changes"). The request keeps the
@@ -103,8 +113,15 @@ export default function useAgentOverview(
   const [request, setRequest] = useState({ key, promise });
   if (request.key !== key) {
     setRequest({ key, promise });
-    setState(initialState(promise));
+    setState({ ...initialState(promise), key });
   }
+
+  // The request on screen. Set as the new search commits, before the old request is aborted in the
+  // effect cleanup: a slow commit can leave a gap in which the old stream still sends events.
+  const committedKeyRef = useRef(key);
+  useIsomorphicLayoutEffect(() => {
+    committedKeyRef.current = request.key;
+  }, [request]);
 
   const callbacksRef = useRef(callbacks);
   useEffect(() => {
@@ -116,9 +133,14 @@ export default function useAgentOverview(
     const sent: IAgenticPromise = request.promise;
 
     const controller = new AbortController();
-    const isCurrent = () => !controller.signal.aborted;
+    const isCurrent = () =>
+      !controller.signal.aborted && committedKeyRef.current === request.key;
+    // An update already queued when a new search resets the state is dropped, not applied to it.
     const update = (patch: Partial<UseAgentOverviewReturn>) => {
-      if (isCurrent()) setState((prev) => ({ ...prev, ...patch }));
+      if (!isCurrent()) return;
+      setState((prev) =>
+        prev.key === request.key ? { ...prev, ...patch } : prev
+      );
     };
 
     // Outside run() so a stream that breaks off can still finish with what already arrived.
@@ -197,5 +219,6 @@ export default function useAgentOverview(
     return () => controller.abort();
   }, [request]);
 
-  return state;
+  const { key: _stateKey, ...overview } = state;
+  return overview;
 }

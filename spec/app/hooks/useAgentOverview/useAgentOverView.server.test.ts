@@ -1,3 +1,5 @@
+// @vitest-environment node
+// A server has no window, so the hook uses useEffect there, as in production.
 import { renderHookServerSide } from '@spec/__tests__/utils.server';
 import * as factories from '@spec/factory';
 

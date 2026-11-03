@@ -1,3 +1,5 @@
+// @vitest-environment node
+// A server has no window, so the hook uses useEffect there, as in production.
 import { renderToString } from 'react-dom/server';
 
 import * as factories from '@spec/factory';
