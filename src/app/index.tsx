@@ -11,8 +11,6 @@ import Skeleton from './components/Skeleton/Skeleton';
 import useAgentOverview from './hooks/useAgentOverview';
 
 import '../styles.css';
-// The section and title styles the overview shares with RecommendationSection.
-import './components/RecommendationSection/RecommendationSection.css';
 import './index.css';
 
 /**

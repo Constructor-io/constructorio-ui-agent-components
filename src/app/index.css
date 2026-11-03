@@ -8,6 +8,24 @@
   overflow: hidden;
 }
 
+/* The overview's section and its single-category row heading. */
+.cio-agent-overview-section {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--cio-spacing-xl);
+  border-bottom: 1px solid var(--cio-color-border);
+}
+
+.cio-agent-overview-section-title {
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-lg);
+  font-weight: var(--cio-font-weight-semibold);
+  color: var(--cio-color-primary);
+  margin: 0;
+  line-height: var(--cio-line-height);
+  letter-spacing: 0%;
+}
+
 .cio-agent-overview-message {
   font-family: var(--cio-font-family);
   font-size: var(--cio-font-size-base);
@@ -46,7 +64,9 @@
 /* The carousel injects padding-left equal to its slide gap on the track, which insets the
    first card from the copy and the title. Three selectors outrank its two (four once the
    build prefixes the root class). */
-.cio-agent-overview-card .cio-agent-overview-carousel [data-slot='carousel-track'] {
+.cio-agent-overview-card
+  .cio-agent-overview-carousel
+  [data-slot='carousel-track'] {
   padding-left: 0;
 }
 

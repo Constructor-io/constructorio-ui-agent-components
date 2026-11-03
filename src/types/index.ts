@@ -106,8 +106,6 @@ export interface IAgentOverviewCallbacks {
  */
 export type Translations = {
   'CioAgentOverview.badge'?: string;
-  'CioAgentOverview.section.aiBadge'?: string;
-  'CioAgentOverview.section.viewMore'?: string;
   'CioAgentOverview.skeleton.thinking'?: string;
   'CioAgentOverview.carousel.previous'?: string;
   'CioAgentOverview.carousel.next'?: string;
@@ -118,7 +116,7 @@ export type Translations = {
 export interface IAgentOverviewSection {
   /** What the set is, such as "Casual Shirt". */
   title: string;
-  /** The id of the search or browse response the products came from. Sent with tracking events. */
+  /** The id of the search or browse response the products came from, for your own tracking. */
   searchResultId?: string;
   products: IProduct[];
 }
@@ -183,13 +181,4 @@ export interface IProduct {
   itemId?: string;
   /** The variation's catalog id, when the response carries one. Sent with click tracking. */
   variationId?: string;
-}
-
-/** A group of recommended products with a title and description. */
-export interface IRecommendationSection {
-  title: string;
-  description: string;
-  products: IProduct[];
-  /** URL for the "View more" link. The link is hidden without it. */
-  viewMoreUrl?: string;
 }
