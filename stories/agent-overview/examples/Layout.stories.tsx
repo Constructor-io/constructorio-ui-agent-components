@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, waitFor } from 'storybook/test';
 
 import CioAgentOverview from '@src/index';
 
@@ -30,7 +31,26 @@ export const SmallContainer: Story = {
         <Demo {...args} />
       </div>
     </div>
-  ),
+  ), // The carousel clips its products at the edge of the copy, not inside the card's padding, so a
+  // card scrolled almost out of view doesn't leave a faded sliver there.
+  play: async ({ canvasElement }) => {
+    const viewport = await waitFor(
+      () => {
+        const element = canvasElement.querySelector(
+          '.cio-agent-overview-carousel-content'
+        );
+        if (!element) throw new Error('The products have not rendered yet');
+        return element as HTMLElement;
+      },
+      { timeout: 60_000 }
+    );
+    const carousel = canvasElement.querySelector(
+      '.cio-agent-overview-carousel'
+    );
+    const clipEdge = viewport.getBoundingClientRect().right;
+    const contentEdge = (carousel as HTMLElement).getBoundingClientRect().right;
+    await expect(Math.round(clipEdge)).toBe(Math.round(contentEdge));
+  },
 };
 
 export const MultiCategory: Story = {};
