@@ -14,10 +14,9 @@ import {
 } from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-function MyAgentOverview({ query }) {
-  const { status, message, sections } = useAgentOverview({
-    apiKey: 'YOUR_API_KEY',
-    query,
+function MyAgentOverview({ searchResponse }) {
+  const { status, message, sections, displayName } = useAgentOverview({
+    agenticPromises: searchResponse.response.agentic_promises,
   });
 
   if (status === 'loading') return <p>Loading…</p>;
@@ -25,6 +24,7 @@ function MyAgentOverview({ query }) {
 
   return (
     <div className="cio-agent-overview-root">
+      <span>{displayName}</span>
       <p>{message}</p>
       <ProductCarousel
         products={sections.flatMap((section) => section.products)}

@@ -56,8 +56,7 @@ const CioAgentOverview = (() => {
      * ```js
      * CioAgentOverview.init({
      *   selector: '#agent',
-     *   apiKey: 'your-api-key',
-     *   query: 'gift for my dad who loves grilling'
+     *   agenticPromises: searchResponse.response.agentic_promises
      * });
      * ```
      */
@@ -113,7 +112,7 @@ const CioAgentOverview = (() => {
      * @example
      * ```js
      * CioAgentOverview.update('#agent', {
-     *   query: 'waterproof hiking boots'
+     *   agenticPromises: nextSearchResponse.response.agentic_promises
      * });
      * ```
      */

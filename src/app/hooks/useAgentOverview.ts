@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type {
+  IAgenticPromise,
   IAgentOverviewError,
   IAgentOverviewProps,
   IAgentOverviewSection,
@@ -11,22 +12,33 @@ import toProduct from '@src/utils/toProduct';
 
 import { AgentInsightsRequestError } from '../services/agentInsightsClient';
 import {
-  createAgentOverviewClient,
+  findAiOverviewPromise,
   streamAgentOverview,
 } from '../services/agentOverviewClient';
 
-/** The HTTP status the search endpoint answers when a query gets no overview. */
-const NO_OVERVIEW_STATUS = 422;
+/** The status the callback answers when search promised an overview but the agent produced none. */
+const NO_OVERVIEW_STATUS = 204;
 
-function initialState(query: string): UseAgentOverviewReturn {
+function initialState(promise: IAgenticPromise | null): UseAgentOverviewReturn {
   return {
-    status: query.trim() ? 'loading' : 'idle',
+    status: promise ? 'loading' : 'idle',
     message: '',
     sections: [],
     resultId: null,
     threadId: null,
     error: null,
+    displayName: promise?.pod.display_name ?? null,
   };
+}
+
+/**
+ * What a promise sends. A page re-rendering with new but equal promise objects keeps its overview;
+ * a new search, or a filter on the same one, changes the URL or the body.
+ */
+function requestKey(promise: IAgenticPromise | null): string {
+  return promise
+    ? `${promise.callback_url}\n${JSON.stringify(promise.body)}`
+    : '';
 }
 
 function toError(err: unknown): IAgentOverviewError {
@@ -60,41 +72,34 @@ function notify(callback: () => void): void {
 }
 
 /**
- * Streams the AI Overview for `query` from `/v1/agent_insights/search`: the overview message,
- * then each product set as it arrives. A new query aborts the previous request.
+ * Streams the AI Overview that a Constructor search response promised: it sends the
+ * `search_ai_overview` promise from `agenticPromises` to its callback URL, then gives the overview
+ * message and each product set as they arrive. A new search response aborts the previous request.
  *
  * @example
  * ```tsx
- * const { status, message, sections } = useAgentOverview({ apiKey: 'YOUR_API_KEY', query });
+ * const { status, message, sections } = useAgentOverview({
+ *   agenticPromises: searchResponse.response.agentic_promises,
+ * });
  * ```
  */
 export default function useAgentOverview(
   props: IAgentOverviewProps
 ): UseAgentOverviewReturn {
-  const { apiKey, cioJsClient, pageContext, callbacks } = props;
-  // The JavaScript bundle has no types: treat a missing query as a blank one.
-  const query = props.query ?? '';
-  const pageType = pageContext?.pageType;
-  const searchTerm = pageContext?.searchTerm;
-  const client = useMemo(
-    () => createAgentOverviewClient({ apiKey, cioJsClient }),
-    [apiKey, cioJsClient]
-  );
+  const { callbacks } = props;
+  // The JavaScript bundle has no types, so anything may arrive here.
+  const promise = findAiOverviewPromise(props.agenticPromises);
+  const key = requestKey(promise);
 
-  const [state, setState] = useState(() => initialState(query));
+  const [state, setState] = useState(() => initialState(promise));
 
   // A new request starts from a clean state in the same render, so no frame shows the previous
-  // query's overview (React's "adjusting state when a prop changes").
-  const request = { client, query, pageType, searchTerm };
-  const [lastRequest, setLastRequest] = useState(request);
-  if (
-    lastRequest.client !== client ||
-    lastRequest.query !== query ||
-    lastRequest.pageType !== pageType ||
-    lastRequest.searchTerm !== searchTerm
-  ) {
-    setLastRequest(request);
-    setState(initialState(query));
+  // search's overview (React's "adjusting state when a prop changes"). The request keeps the
+  // promise it started with, so an equal promise on a re-render doesn't restart it.
+  const [request, setRequest] = useState({ key, promise });
+  if (request.key !== key) {
+    setRequest({ key, promise });
+    setState(initialState(promise));
   }
 
   const callbacksRef = useRef(callbacks);
@@ -103,7 +108,8 @@ export default function useAgentOverview(
   });
 
   useEffect(() => {
-    if (!query.trim()) return undefined;
+    if (!request.promise) return undefined;
+    const sent: IAgenticPromise = request.promise;
 
     const controller = new AbortController();
     const isCurrent = () => !controller.signal.aborted;
@@ -118,17 +124,7 @@ export default function useAgentOverview(
       const messages: string[] = [];
       let serverError: IAgentOverviewError | null = null;
 
-      for await (const event of streamAgentOverview(
-        client,
-        {
-          query,
-          pageContext:
-            pageType || searchTerm !== undefined
-              ? { pageType, searchTerm }
-              : undefined,
-        },
-        controller.signal
-      )) {
+      for await (const event of streamAgentOverview(sent, controller.signal)) {
         if (!isCurrent()) return;
         if (event.type === 'start') {
           update({
@@ -193,7 +189,7 @@ export default function useAgentOverview(
     });
 
     return () => controller.abort();
-  }, [client, query, pageType, searchTerm]);
+  }, [request]);
 
   return state;
 }

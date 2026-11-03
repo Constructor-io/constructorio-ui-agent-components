@@ -4,40 +4,38 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Integration Guide
 
-1. **Install**
+AI Overview adds an AI-written summary and a row of products above your search results. Your Constructor search decides which searches get one: its response carries `agentic_promises`, and a search that suits an overview has a promise for it. The component sends that promise and renders the overview. Keyword searches, such as a brand, have no promise and see no change.
+
+1. **Check that it's on.** Ask your Integration Engineer to turn AI Overview on for your index. Then search a descriptive query, such as "gift for my dad who loves grilling", and look for `agentic_promises` in the search response.
+
+2. **Install**
 
    ```bash
    npm install @constructor-io/constructorio-ui-agent-components
    ```
 
-2. **Render it** between your search header and the first row of results, with the shopper's search.
+3. **Render it** between your search header and the first row of results, with the `agentic_promises` from the search response for the page.
 
    ```jsx
    import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
    import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-   <CioAgentOverview apiKey="YOUR_API_KEY" query={searchQuery} />;
+   <CioAgentOverview
+     agenticPromises={searchResponse.response.agentic_promises}
+   />;
    ```
 
-   The overview comes from `POST /v1/agent_insights/search`. Ask your Integration Engineer to turn AI Overview on for your index. A blank `query` makes no request, and a new `query` starts over.
+   The component finds the promise whose `pod.id` is `search_ai_overview` and sends its `body`, unchanged, to its `callback_url`. Search wrote both for the query, filters and shopper it served, and the URL already carries your key and the shopper's identity, so there's nothing else to pass. Render your results as soon as search returns: the overview never holds them up.
 
-3. **Expect nothing for some searches.** Simple keyword searches, such as a brand, get no overview, and the component renders nothing. So does a failed request. `callbacks.onNoOverview` and `callbacks.onError` tell you when. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
+4. **Expect nothing for some searches.** There's no request and nothing renders when the response has no AI Overview promise. A promise is not a guarantee: when the agent produces nothing (a 204), the component renders nothing and calls `callbacks.onNoOverview`. When the request fails, it renders nothing and calls `callbacks.onError`. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
 
-4. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
+5. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
 
-5. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+6. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
-## Page context
+## New searches
 
-The overview assumes a search results page for `query`. Set `pageContext` when it isn't one:
-
-```jsx
-<CioAgentOverview
-  apiKey="YOUR_API_KEY"
-  query={searchQuery}
-  pageContext={{ pageType: 'collection', searchTerm: 'summer' }}
-/>
-```
+Pass each new search response's `agentic_promises`. A new search, or a filter that sends a new promise, aborts the overview still streaming, so an old overview never lands on new results. Re-rendering with the same response doesn't send it again.
 
 ## Without React
 
@@ -48,9 +46,13 @@ import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/
 
 CioAgentOverview.init({
   selector: '#agent-overview',
-  apiKey: 'YOUR_API_KEY',
-  query: 'gift for my dad who loves grilling',
+  agenticPromises: searchResponse.response.agentic_promises,
+});
+
+// After the next search:
+CioAgentOverview.update('#agent-overview', {
+  agenticPromises: nextSearchResponse.response.agentic_promises,
 });
 ```
 
-It takes the same props. See [JavaScript Bundle](?path=/docs/agent-overview-components-utilities-javascript-bundle--docs) for `update` and `destroy`.
+It takes the same props. See [JavaScript Bundle](?path=/docs/agent-overview-components-utilities-javascript-bundle--docs) for `destroy`.

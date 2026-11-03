@@ -1,52 +1,37 @@
-import ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
-
-import type { IAgentOverviewPageContext } from '@src/types';
-import version from '@src/version';
+import type { IAgenticPromise } from '@src/types';
 
 import { streamAgentInsights } from './agentInsightsClient';
 import type { AgentInsightsEvent } from './agentInsightsTypes';
 
-/** The client tag (`c`) on Agent Overview's requests and tracking events. */
-export const AGENT_OVERVIEW_CLIENT_TAG = `cio-ui-agent-overview-${version}`;
+/** The pod id of the AI Overview's promise in a search response. */
+export const AI_OVERVIEW_POD_ID = 'search_ai_overview';
 
-interface AgentOverviewClientOptions {
-  apiKey?: string;
-  cioJsClient?: ConstructorIOClient;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-/** The host's JS client, or one created for `apiKey` that sends tracking events. */
-export function createAgentOverviewClient({
-  apiKey,
-  cioJsClient,
-}: AgentOverviewClientOptions): ConstructorIOClient {
-  if (cioJsClient) return cioJsClient;
-  if (apiKey) {
-    return new ConstructorIOClient({
-      apiKey,
-      sendTrackingEvents: true,
-      version: AGENT_OVERVIEW_CLIENT_TAG,
-    });
-  }
-  throw new Error('Either apiKey or cioJsClient must be provided');
+/**
+ * The AI Overview's promise in a search response's `agentic_promises`, found by its pod id rather
+ * than its position, or null when search didn't send one.
+ */
+export function findAiOverviewPromise(
+  promises: unknown
+): IAgenticPromise | null {
+  if (!Array.isArray(promises)) return null;
+  const found: unknown = promises.find(
+    (promise: unknown) =>
+      isObject(promise) &&
+      isObject(promise.pod) &&
+      promise.pod.id === AI_OVERVIEW_POD_ID &&
+      typeof promise.callback_url === 'string'
+  );
+  return (found as IAgenticPromise | undefined) ?? null;
 }
 
-/** Streams the AI Overview for a search from `POST /v1/agent_insights/search`. */
+/** Streams the AI Overview that search promised, sending the promise as it is. */
 export function streamAgentOverview(
-  client: ConstructorIOClient,
-  request: { query: string; pageContext?: IAgentOverviewPageContext },
+  promise: IAgenticPromise,
   signal?: AbortSignal
 ): AsyncGenerator<AgentInsightsEvent> {
-  const { query, pageContext } = request;
-  return streamAgentInsights(
-    client,
-    'search',
-    {
-      shopper_input: query,
-      page_context: {
-        page_type: pageContext?.pageType ?? 'plp',
-        search_term: pageContext?.searchTerm ?? query,
-      },
-    },
-    { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal }
-  );
+  return streamAgentInsights(promise, { signal });
 }

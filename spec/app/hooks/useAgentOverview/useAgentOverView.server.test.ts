@@ -23,6 +23,7 @@ describe(`${useAgentOverview.name}: server`, () => {
       resultId: null,
       threadId: null,
       error: null,
+      displayName: 'AI Overview',
     });
     expect(streamAgentOverview).not.toHaveBeenCalled();
   });

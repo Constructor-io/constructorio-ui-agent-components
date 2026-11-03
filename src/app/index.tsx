@@ -17,16 +17,17 @@ import './index.css';
 
 /**
  * Pre-built AI Overview: streams a short AI-written summary and the products picked for a
- * shopper's search, for the top of a search results page. A query that gets no overview, or a
- * failed request, renders nothing.
+ * shopper's search, for the top of a search results page. Pass the `agentic_promises` from your
+ * Constructor search response. A search without an AI Overview promise, a promise the agent
+ * declines, and a failed request all render nothing.
  *
  * @example
  * ```tsx
- * <CioAgentOverview apiKey="YOUR_API_KEY" query="gift for my dad who loves grilling" />
+ * <CioAgentOverview agenticPromises={searchResponse.response.agentic_promises} />
  * ```
  */
 export default function CioAgentOverview(props: IAgentOverviewProps) {
-  const { status, message, sections } = useAgentOverview(props);
+  const { status, message, sections, displayName } = useAgentOverview(props);
   const { callbacks, translations } = props;
 
   const paragraphs = message.split('\n\n').filter((text) => text.trim());
@@ -41,8 +42,11 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
     status === 'loading' || status === 'streaming' || status === 'done';
   // A first set of several products is a single-category overview: its title heads the row.
   // Sets of one product are categories of a multi-category overview, labelled on each card.
-  // Blanking a string is how a site hides it.
-  const badge = translate('CioAgentOverview.badge', translations);
+  // Search's label for the overview, unless the site translates it. Blanking it hides the pill.
+  const badge =
+    translations?.['CioAgentOverview.badge'] ??
+    displayName ??
+    translate('CioAgentOverview.badge');
   const heading =
     sections[0] && sections[0].products.length > 1 ? sections[0].title : '';
 

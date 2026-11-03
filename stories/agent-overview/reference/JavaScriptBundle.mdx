@@ -11,11 +11,11 @@ import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/
 
 CioAgentOverview.init({
   selector: '#agent-overview',
-  apiKey: 'YOUR_API_KEY',
-  query: 'gift for my dad who loves grilling',
+  agenticPromises: searchResponse.response.agentic_promises,
 });
+// After the next search:
 CioAgentOverview.update('#agent-overview', {
-  query: 'summer dresses for a beach wedding',
+  agenticPromises: nextSearchResponse.response.agentic_promises,
 });
 CioAgentOverview.destroy('#agent-overview');
 ```

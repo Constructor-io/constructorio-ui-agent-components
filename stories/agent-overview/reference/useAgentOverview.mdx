@@ -4,10 +4,10 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 # useAgentOverview
 
-Streams the AI Overview for a search. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); it uses `apiKey`, `cioJsClient`, `query`, `pageContext`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+Streams the AI Overview that a search response promised. Takes [`CioAgentOverview`'s props](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs); it uses `agenticPromises`, `callbacks.onNoOverview` and `callbacks.onError`. See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ```js
-const { status, message, sections, resultId, threadId, error } =
+const { status, message, sections, resultId, threadId, error, displayName } =
   useAgentOverview(props);
 ```
 
@@ -15,12 +15,13 @@ const { status, message, sections, resultId, threadId, error } =
   {`
 | Returns | Type | |
 |---|---|---|
-| \`status\` | \`'idle' \\| 'loading' \\| 'streaming' \\| 'done' \\| 'no-overview' \\| 'error'\` | \`idle\` without a query; \`loading\` until the stream opens; \`streaming\` while it arrives |
+| \`status\` | \`'idle' \\| 'loading' \\| 'streaming' \\| 'done' \\| 'no-overview' \\| 'error'\` | \`idle\` without an AI Overview promise; \`loading\` until the stream opens; \`streaming\` while it arrives |
 | \`message\` | \`string\` | The overview's text. Several messages are joined with a blank line |
 | \`sections\` | \`IAgentOverviewSection[]\` | \`{ title, searchResultId, products }\`, one per product set, in the order they arrived |
 | \`resultId\` | \`string \\| null\` | The overview's id, once the stream opens |
 | \`threadId\` | \`string \\| null\` | The conversation thread the overview opened, if any |
 | \`error\` | \`IAgentOverviewError \\| null\` | \`{ status, code, message }\` when \`status\` is \`error\` |
+| \`displayName\` | \`string \\| null\` | Search's label for the overview (the promise's \`pod.display_name\`, e.g. "AI Overview") |
 `}
 </Markdown>
 

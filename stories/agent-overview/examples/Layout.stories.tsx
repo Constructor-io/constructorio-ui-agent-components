@@ -2,25 +2,32 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import CioAgentOverview from '@src/index';
 
-import { demoArgs, singleCategoryQuery } from '../fixtures';
+import { type DemoArgs, demoArgs, singleCategorySearch } from '../fixtures';
+import useDemoSearch from '../useDemoSearch';
 
-const meta: Meta<typeof CioAgentOverview> = {
+function Demo({ search, ...props }: DemoArgs) {
+  const agenticPromises = useDemoSearch(search);
+  return <CioAgentOverview {...props} agenticPromises={agenticPromises} />;
+}
+
+const meta: Meta<DemoArgs> = {
   title: 'Agent Overview/Examples/Layout',
-  component: CioAgentOverview,
+  component: CioAgentOverview as Meta<DemoArgs>['component'],
   tags: ['!dev'],
   parameters: { a11y: { test: 'error' } },
   args: demoArgs,
+  render: (args) => <Demo {...args} />,
 };
 
 export default meta;
 
-type Story = StoryObj<typeof CioAgentOverview>;
+type Story = StoryObj<DemoArgs>;
 
 export const SmallContainer: Story = {
   render: (args) => (
     <div className="small-container-example-wrapper">
       <div className="small-container-example">
-        <CioAgentOverview {...args} />
+        <Demo {...args} />
       </div>
     </div>
   ),
@@ -29,5 +36,5 @@ export const SmallContainer: Story = {
 export const MultiCategory: Story = {};
 
 export const SingleCategory: Story = {
-  args: { query: singleCategoryQuery },
+  args: { search: singleCategorySearch },
 };

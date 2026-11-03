@@ -1,87 +1,55 @@
-import ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
+import { aiOverviewPromise } from '@spec/factory';
 
 import { streamAgentInsights } from '@src/app/services/agentInsightsClient';
 import {
-  AGENT_OVERVIEW_CLIENT_TAG,
-  createAgentOverviewClient,
+  AI_OVERVIEW_POD_ID,
+  findAiOverviewPromise,
   streamAgentOverview,
 } from '@src/app/services/agentOverviewClient';
 
-vi.mock('@constructor-io/constructorio-client-javascript', () => ({
-  default: vi.fn(),
-}));
 vi.mock('@src/app/services/agentInsightsClient', () => ({
   streamAgentInsights: vi.fn(),
 }));
 
-const MockedClient = vi.mocked(ConstructorIOClient);
 const mockedStream = vi.mocked(streamAgentInsights);
-const hostClient = { options: { apiKey: 'k', version: 'host' } } as never;
 
 describe('agentOverviewClient', () => {
   afterEach(() => {
-    MockedClient.mockReset();
     mockedStream.mockReset();
   });
 
-  describe('createAgentOverviewClient', () => {
-    it('should throw without apiKey or cioJsClient', () => {
-      expect(() => createAgentOverviewClient({})).toThrow(
-        'Either apiKey or cioJsClient must be provided'
-      );
+  describe('findAiOverviewPromise', () => {
+    it('should find the promise by its pod id, not its position', () => {
+      const overview = aiOverviewPromise();
+      const other = {
+        ...aiOverviewPromise(),
+        pod: { id: 'search_something_else' },
+      };
+      expect(findAiOverviewPromise([other, overview])).toBe(overview);
+      expect(AI_OVERVIEW_POD_ID).toBe('search_ai_overview');
     });
 
-    it('should use the host client when given', () => {
-      expect(
-        createAgentOverviewClient({ apiKey: 'other', cioJsClient: hostClient })
-      ).toBe(hostClient);
-      expect(MockedClient).not.toHaveBeenCalled();
-    });
-
-    it('should create a tracking-enabled client from apiKey', () => {
-      createAgentOverviewClient({ apiKey: 'k' });
-      expect(MockedClient).toHaveBeenCalledWith({
-        apiKey: 'k',
-        sendTrackingEvents: true,
-        version: AGENT_OVERVIEW_CLIENT_TAG,
-      });
+    it.each([
+      ['no array', undefined],
+      ['null', null],
+      ['an empty array', []],
+      ['another pod only', [{ pod: { id: 'other' }, callback_url: 'u' }]],
+      [
+        'a promise without a callback_url',
+        [{ pod: { id: AI_OVERVIEW_POD_ID } }],
+      ],
+      ['entries that are not objects', [null, 'x', 1]],
+    ])('should return null for %s', (_, promises) => {
+      expect(findAiOverviewPromise(promises)).toBeNull();
     });
   });
 
   describe('streamAgentOverview', () => {
-    it('should send shopper_input and a plp page_context with the query as search_term', () => {
+    it('should send the promise as it is', () => {
+      const promise = aiOverviewPromise();
       const signal = new AbortController().signal;
-      streamAgentOverview(hostClient, { query: 'gift for dad' }, signal);
-
-      expect(mockedStream).toHaveBeenCalledWith(
-        hostClient,
-        'search',
-        {
-          shopper_input: 'gift for dad',
-          page_context: { page_type: 'plp', search_term: 'gift for dad' },
-        },
-        { clientTag: AGENT_OVERVIEW_CLIENT_TAG, signal }
-      );
-    });
-
-    it('should use pageContext when given', () => {
-      streamAgentOverview(hostClient, {
-        query: 'gift for dad',
-        pageContext: { pageType: 'collection', searchTerm: 'gifts' },
-      });
-
-      expect(mockedStream.mock.calls[0][2]).toEqual({
-        shopper_input: 'gift for dad',
-        page_context: { page_type: 'collection', search_term: 'gifts' },
-      });
-    });
-
-    it('should tag the request with the overview tag even on a host client', () => {
-      streamAgentOverview(hostClient, { query: 'q' });
-      expect(mockedStream.mock.calls[0][3]).toMatchObject({
-        clientTag: AGENT_OVERVIEW_CLIENT_TAG,
-      });
-      expect(AGENT_OVERVIEW_CLIENT_TAG).toMatch(/^cio-ui-agent-overview-/);
+      streamAgentOverview(promise, signal);
+      expect(mockedStream).toHaveBeenCalledWith(promise, { signal });
     });
   });
 });

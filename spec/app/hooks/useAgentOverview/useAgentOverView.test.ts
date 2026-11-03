@@ -22,28 +22,42 @@ vi.mock('@src/app/services/agentOverviewClient', async (importOriginal) => ({
 }));
 
 const mockedStream = vi.mocked(streamAgentOverview);
-const cioJsClient = { options: { apiKey: 'k' } } as never;
 
-// cioJsClient is added after build(): fishery deep-copies params, and a new client object on every
-// render would start a new request on every render.
+// build() deep-copies its params, so every call makes new but equal promise objects, as a page
+// does when it re-renders with the same search response.
 function build(overrides: Partial<IAgentOverviewProps> = {}) {
-  return {
-    ...factories.agentOverviewProps.build({ apiKey: undefined, ...overrides }),
-    cioJsClient,
-  };
+  return factories.agentOverviewProps.build(overrides);
 }
+
+const nextSearch = () => [factories.aiOverviewPromise('gift for dad', 'p2')];
 
 describe('useAgentOverview', () => {
   afterEach(() => {
     mockedStream.mockReset();
   });
 
-  it('should stay idle for a blank query', () => {
+  it.each([
+    ['no agenticPromises', undefined],
+    ['an empty array', []],
+    [
+      'only another pod',
+      [{ pod: { id: 'other' }, callback_url: 'u', body: {} }],
+    ],
+  ])('should stay idle and make no request with %s', (_, agenticPromises) => {
+    const onNoOverview = vi.fn();
     const { result } = renderHook(() =>
-      useAgentOverview(build({ query: '  ' }))
+      useAgentOverview({ agenticPromises, callbacks: { onNoOverview } })
     );
     expect(result.current.status).toBe('idle');
+    expect(result.current.displayName).toBeNull();
     expect(mockedStream).not.toHaveBeenCalled();
+    expect(onNoOverview).not.toHaveBeenCalled();
+  });
+
+  it("should give the promise's display name", () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const { result } = renderHook(() => useAgentOverview(build()));
+    expect(result.current.displayName).toBe('AI Overview');
   });
 
   it('should go loading, streaming, then done with the message and sections', async () => {
@@ -53,8 +67,7 @@ describe('useAgentOverview', () => {
 
     expect(result.current.status).toBe('loading');
     expect(mockedStream).toHaveBeenCalledWith(
-      cioJsClient,
-      { query: 'I want to buy casual style', pageContext: undefined },
+      factories.aiOverviewPromise(),
       expect.any(AbortSignal)
     );
 
@@ -117,7 +130,7 @@ describe('useAgentOverview', () => {
     expect(result.current.sections.map((s) => s.title)).toEqual(['Shown']);
   });
 
-  it('should be no-overview on a 422 and call onNoOverview once', async () => {
+  it('should be no-overview on a 204 and call onNoOverview once', async () => {
     const onNoOverview = vi.fn();
     const controlled = controlledStream();
     mockedStream.mockReturnValue(controlled.stream);
@@ -126,11 +139,7 @@ describe('useAgentOverview', () => {
     );
 
     act(() =>
-      controlled.fail(
-        new AgentInsightsRequestError(422, 'not suitable', {
-          code: 'client_error',
-        })
-      )
+      controlled.fail(new AgentInsightsRequestError(204, 'no content'))
     );
     await waitFor(() => expect(result.current.status).toBe('no-overview'));
     expect(onNoOverview).toHaveBeenCalledTimes(1);
@@ -308,7 +317,9 @@ describe('useAgentOverview', () => {
       }
     );
 
-    rerender(build({ query: 'gift for dad', callbacks: { onNoOverview } }));
+    rerender(
+      build({ agenticPromises: nextSearch(), callbacks: { onNoOverview } })
+    );
     act(() => {
       first.push(start);
       first.push(message('stale'));
@@ -328,28 +339,47 @@ describe('useAgentOverview', () => {
     expect(onNoOverview).not.toHaveBeenCalled();
   });
 
-  it('should abort the previous request when the query changes', () => {
+  it('should abort the previous request for a new search', () => {
     mockedStream.mockImplementation(() => controlledStream().stream);
     const { rerender } = renderHook((props) => useAgentOverview(props), {
       initialProps: build(),
     });
-    const firstSignal = mockedStream.mock.calls[0][2]!;
+    const firstSignal = mockedStream.mock.calls[0][1]!;
 
-    rerender(build({ query: 'gift for dad' }));
+    rerender(build({ agenticPromises: nextSearch() }));
 
     expect(firstSignal.aborted).toBe(true);
     expect(mockedStream).toHaveBeenCalledTimes(2);
   });
 
-  it('should refetch when pageContext values change but not for a new equal object', () => {
+  it('should not refetch for an equal promise, but should when only the body changes', () => {
     mockedStream.mockImplementation(() => controlledStream().stream);
     const { rerender } = renderHook((props) => useAgentOverview(props), {
-      initialProps: build({ pageContext: { searchTerm: 'a' } }),
+      initialProps: build(),
     });
-    rerender(build({ pageContext: { searchTerm: 'a' } }));
+    rerender(build());
     expect(mockedStream).toHaveBeenCalledTimes(1);
-    rerender(build({ pageContext: { searchTerm: 'b' } }));
+
+    // A filter applied to the same search: same URL, new page_context.
+    const filtered = factories.aiOverviewPromise();
+    filtered.body = { ...(filtered.body as object), filtered: true };
+    rerender(build({ agenticPromises: [filtered] }));
     expect(mockedStream).toHaveBeenCalledTimes(2);
+  });
+
+  it('should reset to idle when a new search has no promise', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(start, itemResults('A', 's1', ['a']), end)
+    );
+    const { result, rerender } = renderHook(
+      (props) => useAgentOverview(props),
+      { initialProps: build() }
+    );
+    await waitFor(() => expect(result.current.status).toBe('done'));
+
+    rerender(build({ agenticPromises: [] }));
+    expect(result.current.status).toBe('idle');
+    expect(result.current.sections).toEqual([]);
   });
 
   it('should not refetch when only callbacks change', () => {

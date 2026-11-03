@@ -27,13 +27,9 @@ vi.mock('@src/app/services/agentOverviewClient', async (importOriginal) => ({
 }));
 
 const mockedStream = vi.mocked(streamAgentOverview);
-const cioJsClient = { options: { apiKey: 'k' } } as never;
 
 function renderOverview(overrides: Partial<IAgentOverviewProps> = {}) {
-  const props = {
-    ...factories.agentOverviewProps.build({ apiKey: undefined, ...overrides }),
-    cioJsClient,
-  };
+  const props = factories.agentOverviewProps.build(overrides);
   return render(<CioAgentOverview {...props} />);
 }
 
@@ -157,6 +153,14 @@ describe('CioAgentOverview', () => {
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });
 
+  it("should label the card with the promise's display name", () => {
+    mockedStream.mockReturnValue(controlledStream().stream);
+    const promise = factories.aiOverviewPromise();
+    promise.pod.display_name = 'Search assistant';
+    renderOverview({ agenticPromises: [promise] });
+    expect(screen.getByText('Search assistant')).toBeInTheDocument();
+  });
+
   it('should take the badge text from translations', () => {
     mockedStream.mockReturnValue(controlledStream().stream);
     renderOverview({
@@ -165,9 +169,9 @@ describe('CioAgentOverview', () => {
     expect(screen.getByText('AI summary')).toBeInTheDocument();
   });
 
-  it('should render nothing, without throwing, when query is missing', () => {
+  it('should render nothing, without throwing, when agenticPromises is not an array', () => {
     const { container } = renderOverview({
-      query: undefined as unknown as string,
+      agenticPromises: 'oops' as never,
     });
     expect(root(container)).toBeEmptyDOMElement();
     expect(mockedStream).not.toHaveBeenCalled();
@@ -224,7 +228,7 @@ describe('CioAgentOverview', () => {
     mockedStream.mockReturnValue(streamOf());
     mockedStream.mockImplementation(() => {
       const c = controlledStream();
-      c.fail(new AgentInsightsRequestError(422, 'not suitable'));
+      c.fail(new AgentInsightsRequestError(204, 'no content'));
       return c.stream;
     });
     const { container } = renderOverview({ callbacks: { onNoOverview } });
@@ -246,8 +250,8 @@ describe('CioAgentOverview', () => {
     expect(root(container)).toBeEmptyDOMElement();
   });
 
-  it('should render nothing for a blank query', () => {
-    const { container } = renderOverview({ query: '' });
+  it('should render nothing, and make no request, for a search without a promise', () => {
+    const { container } = renderOverview({ agenticPromises: [] });
     expect(root(container)).toBeEmptyDOMElement();
     expect(mockedStream).not.toHaveBeenCalled();
   });

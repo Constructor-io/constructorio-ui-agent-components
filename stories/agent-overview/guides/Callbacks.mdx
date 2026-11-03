@@ -6,8 +6,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 ```jsx
 <CioAgentOverview
-  apiKey="YOUR_API_KEY"
-  query={searchQuery}
+  agenticPromises={searchResponse.response.agentic_promises}
   callbacks={{
     onProductClick: (event, product, section) =>
       myAnalytics.track('product_click', {
@@ -27,7 +26,7 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 |---|---|
 | \`onProductClick(event, product, section)\` | When a product card is clicked, with the product set it came from. The card is a link: call \`event.preventDefault()\` to navigate yourself |
 | \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
-| \`onNoOverview()\` | When the search gets no overview. The component renders nothing |
-| \`onError(error)\` | When the request fails, with \`{ status, code, message }\`. \`status\` is 0 when there was no response. The component renders nothing |
+| \`onNoOverview()\` | When search promised an overview but the agent produced nothing (a 204). The component renders nothing. Not called for a search without a promise, which makes no request |
+| \`onError(error)\` | When the request fails, with \`{ status, code, message }\`: any status but 200 or 204, or a \`server_error\` before any product. \`status\` is 0 when there was no response. The component renders nothing |
 `}
 </Markdown>

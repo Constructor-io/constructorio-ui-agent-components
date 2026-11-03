@@ -19,7 +19,8 @@ npm i @constructor-io/constructorio-ui-agent-components
 import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-<CioAgentOverview apiKey='YOUR_API_KEY' query='gift for my dad who loves grilling' />;
+// agentic_promises from your Constructor search response
+<CioAgentOverview agenticPromises={searchResponse.response.agentic_promises} />;
 ```
 
 The JavaScript bundle, the headless hook, callbacks, theming and every prop are in the [docs](https://constructor-io.github.io/constructorio-ui-agent-components/).

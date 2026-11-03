@@ -1,4 +1,10 @@
-import type ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
+import type { AgentInsightsPromise } from '../app/services/agentInsightsTypes';
+
+/**
+ * One entry of a Constructor search response's `agentic_promises`, passed as it came. The overview
+ * uses the one whose `pod.id` is `search_ai_overview`.
+ */
+export type IAgenticPromise = AgentInsightsPromise;
 
 /** Theme customization for the Agent Overview component. All properties map to CSS custom properties. */
 export interface CioAgentOverviewTheme {
@@ -81,9 +87,12 @@ export interface IAgentOverviewCallbacks {
   ) => void;
   /** Builds a URL for a product card link. If not provided, the product's default URL is used. */
   getProductUrl?: (product: IProduct) => string;
-  /** Called when the query gets no overview, so the page can collapse the space it kept for one. */
+  /**
+   * Called when search promised an overview but the agent produced nothing (a 204), so the page can
+   * collapse the space it kept for one. Not called for a search without a promise.
+   */
   onNoOverview?: () => void;
-  /** Called when the overview request fails. Nothing is shown to the shopper. */
+  /** Called when the overview request fails, with any status but 200 or 204. Nothing is shown to the shopper. */
   onError?: (error: IAgentOverviewError) => void;
 }
 
@@ -102,13 +111,6 @@ export type Translations = {
 };
 
 /** Where the overview is shown. */
-export interface IAgentOverviewPageContext {
-  /** The kind of page. @default 'plp' */
-  pageType?: 'plp' | 'collection' | 'home';
-  /** The search the page shows results for. @default the `query` prop */
-  searchTerm?: string;
-}
-
 /** One set of products in an overview, as one `item_results` event streamed it. */
 export interface IAgentOverviewSection {
   /** What the set is, such as "Casual Shirt". */
@@ -128,22 +130,21 @@ export interface IAgentOverviewError {
 }
 
 /**
- * Where an overview request is: `idle` without a query, `loading` until the stream opens,
- * `streaming` while it arrives, then `done`, `no-overview` (the query gets none) or `error`.
+ * Where an overview request is: `idle` without an AI Overview promise, `loading` until the stream
+ * opens, `streaming` while it arrives, then `done`, `no-overview` (the agent produced nothing) or
+ * `error`.
  */
 export type AgentOverviewStatus =
   'idle' | 'loading' | 'streaming' | 'done' | 'no-overview' | 'error';
 
 /** Props for the CioAgentOverview component and useAgentOverview hook. */
 export interface IAgentOverviewProps {
-  /** Constructor.io API key. Required if `cioJsClient` is not provided. */
-  apiKey?: string;
-  /** Pre-configured Constructor.io JS client instance. Takes precedence over `apiKey`. */
-  cioJsClient?: ConstructorIOClient;
-  /** The shopper's search. A blank query makes no request. */
-  query: string;
-  /** Where the overview is shown. Defaults to a search results page for `query`. */
-  pageContext?: IAgentOverviewPageContext;
+  /**
+   * `response.agentic_promises` from the Constructor search response for the page's search, as it
+   * came. The overview sends the promise for `search_ai_overview`; without one, nothing renders and
+   * no request is made. A new search response starts a new overview.
+   */
+  agenticPromises?: IAgenticPromise[] | null;
   /** Theme overrides for customizing visual appearance via CSS custom properties. */
   theme?: CioAgentOverviewTheme;
   /** Callback functions for handling user interactions. */
@@ -165,6 +166,8 @@ export interface UseAgentOverviewReturn {
   threadId: string | null;
   /** Set when `status` is `error`. */
   error: IAgentOverviewError | null;
+  /** The label search gave the overview (`pod.display_name`, e.g. "AI Overview"), when it sent a promise. */
+  displayName: string | null;
 }
 
 /** A product item within a recommendation section. */
