@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { MockInstance } from 'vitest';
 
 import {
   controlledStream,
@@ -234,6 +235,63 @@ describe('useAgentOverview', () => {
     const { result } = renderHook(() => useAgentOverview(build()));
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toEqual({ status: 500, message: 'boom' });
+  });
+
+  describe('when a callback throws', () => {
+    // The test setup replaces console.error for each test, so spy on it in beforeEach.
+    let consoleError: MockInstance<typeof console.error>;
+    // The request's promise chain settles after the callback runs.
+    const settle = () =>
+      act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+    beforeEach(() => {
+      consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+    afterEach(() => consoleError.mockRestore());
+
+    it('should stay no-overview and not report the exception as a request error', async () => {
+      const bug = new Error('site bug');
+      const onNoOverview = vi.fn(() => {
+        throw bug;
+      });
+      const onError = vi.fn();
+      mockedStream.mockReturnValue(streamOf(start, message('Hmm.'), end));
+      const { result } = renderHook(() =>
+        useAgentOverview(build({ callbacks: { onNoOverview, onError } }))
+      );
+
+      await waitFor(() => expect(onNoOverview).toHaveBeenCalledTimes(1));
+      await settle();
+      expect(result.current.status).toBe('no-overview');
+      expect(result.current.error).toBeNull();
+      expect(onError).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledWith(expect.any(String), bug);
+    });
+
+    it('should call a throwing onError only once', async () => {
+      const onError = vi.fn(() => {
+        throw new Error('site bug');
+      });
+      mockedStream.mockReturnValue(
+        streamOf(
+          start,
+          {
+            type: 'server_error',
+            resultId: 'r1',
+            statusCode: 500,
+            message: 'boom',
+          },
+          end
+        )
+      );
+      const { result } = renderHook(() =>
+        useAgentOverview(build({ callbacks: { onError } }))
+      );
+
+      await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+      await settle();
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(result.current.error).toEqual({ status: 500, message: 'boom' });
+    });
   });
 
   it('should ignore events from a superseded request', async () => {

@@ -48,6 +48,18 @@ function isAbort(err: unknown): boolean {
 }
 
 /**
+ * Calls one of the site's callbacks. An exception in the site's code is logged, so it can't be
+ * taken for a failed request.
+ */
+function notify(callback: () => void): void {
+  try {
+    callback();
+  } catch (err) {
+    console.error('CioAgentOverview: a callback threw', err);
+  }
+}
+
+/**
  * Streams the AI Overview for `query` from `/v1/agent_insights/search`: the overview message,
  * then each product set as it arrives. A new query aborts the previous request.
  *
@@ -153,10 +165,10 @@ export default function useAgentOverview(
         update({ status: 'done' });
       } else if (serverError) {
         update({ status: 'error', error: serverError });
-        callbacksRef.current?.onError?.(serverError);
+        notify(() => callbacksRef.current?.onError?.(serverError));
       } else {
         update({ status: 'no-overview' });
-        callbacksRef.current?.onNoOverview?.();
+        notify(() => callbacksRef.current?.onNoOverview?.());
       }
     }
 
@@ -172,12 +184,12 @@ export default function useAgentOverview(
         err.status === NO_OVERVIEW_STATUS
       ) {
         update({ status: 'no-overview' });
-        callbacksRef.current?.onNoOverview?.();
+        notify(() => callbacksRef.current?.onNoOverview?.());
         return;
       }
       const error = toError(err);
       update({ status: 'error', error });
-      callbacksRef.current?.onError?.(error);
+      notify(() => callbacksRef.current?.onError?.(error));
     });
 
     return () => controller.abort();
