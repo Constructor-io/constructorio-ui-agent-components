@@ -1,7 +1,22 @@
 import type { AgentStreamResultItem } from './agentStreamTypes';
 
-/** The `/v1/agent_insights/{mode}` endpoints this library calls. Add a mode when a component uses it. */
-export type AgentInsightsMode = 'search';
+/**
+ * One entry of a Constructor search response's `agentic_promises`, as search sent it: a request
+ * to an agent_insights endpoint that search wrote for the query, filters and shopper it served.
+ * Send it as it is; don't build or change it.
+ */
+export interface AgentInsightsPromise {
+  /** The slot the promise fills, e.g. `search_ai_overview`, and its label. */
+  pod: { id: string; display_name?: string };
+  /** The agent_insights mode, e.g. `search`. */
+  mode?: string;
+  /** Always `POST`. */
+  method?: string;
+  /** Ready to call: carries `key`, the shopper identity sent to search, and `parent_result_id`. */
+  callback_url: string;
+  /** The request body, sent as JSON without changes. */
+  body: unknown;
+}
 
 interface AgentInsightsEventBase {
   /** The response's id, the same on every event of one response. */

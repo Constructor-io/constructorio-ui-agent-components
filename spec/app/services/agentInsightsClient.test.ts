@@ -1,13 +1,12 @@
 // cspell:ignore unstub -- vitest's vi.unstubAllGlobals
-import type ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
-
 import {
   AgentInsightsRequestError,
-  buildAgentInsightsUrl,
-  getClientIdentity,
   streamAgentInsights,
 } from '@src/app/services/agentInsightsClient';
-import type { AgentInsightsEvent } from '@src/app/services/agentInsightsTypes';
+import type {
+  AgentInsightsEvent,
+  AgentInsightsPromise,
+} from '@src/app/services/agentInsightsTypes';
 
 const encoder = new TextEncoder();
 const RESULT = { value: 'Oxford Shirt', data: { id: 'S1' } };
@@ -30,10 +29,23 @@ function bodyOf(text: string): ReadableStream<Uint8Array> {
   });
 }
 
-function clientWith(options: Record<string, unknown>): ConstructorIOClient {
+const CALLBACK_URL =
+  'https://agent.cnstrc.com/v1/agent_insights/search?key=k&i=c1&s=3&c=host-tag&parent_result_id=p1';
+
+function promiseWith(
+  overrides: Partial<AgentInsightsPromise> = {}
+): AgentInsightsPromise {
   return {
-    options: { apiKey: 'k', ...options },
-  } as unknown as ConstructorIOClient;
+    pod: { id: 'search_ai_overview', display_name: 'AI Overview' },
+    mode: 'search',
+    method: 'POST',
+    callback_url: CALLBACK_URL,
+    body: {
+      shopper_input: 'q',
+      page_context: { page_type: 'plp', search_term: 'q', filters: { a: 1 } },
+    },
+    ...overrides,
+  };
 }
 
 async function collect(
@@ -56,83 +68,46 @@ describe('agentInsightsClient', () => {
     vi.unstubAllGlobals();
   });
 
-  describe('buildAgentInsightsUrl', () => {
-    it('should build the URL from the client identity', () => {
-      const identity = getClientIdentity(
-        clientWith({
-          version: 'v',
-          clientId: 'c1',
-          sessionId: 3,
-          userId: 'u',
-          segments: ['a', 'b'],
-          testCells: { t: 'x' },
-        })
-      );
-      expect(buildAgentInsightsUrl(identity, 'search')).toBe(
-        'https://agent.cnstrc.com/v1/agent_insights/search?key=k&c=v&i=c1&s=3&ui=u&us=a&us=b&ef-t=x'
-      );
-    });
-
-    it("should override the client's own c tag", () => {
-      const url = buildAgentInsightsUrl(
-        { apiKey: 'k', version: 'host' },
-        'search',
-        {
-          clientTag: 'cio-ui-agent-overview-1.0.0',
-        }
-      );
-      expect(new URL(url).searchParams.getAll('c')).toEqual([
-        'cio-ui-agent-overview-1.0.0',
-      ]);
-    });
-
-    it('should use agentServiceUrl without a trailing slash', () => {
-      const url = buildAgentInsightsUrl(
-        { apiKey: 'k', agentServiceUrl: 'https://agent.example.com/' },
-        'search'
-      );
-      expect(url).toBe(
-        'https://agent.example.com/v1/agent_insights/search?key=k'
-      );
-    });
-
-    it('should add thread_id when given', () => {
-      const url = buildAgentInsightsUrl({ apiKey: 'k' }, 'search', {
-        threadId: 't1',
-      });
-      expect(new URL(url).searchParams.get('thread_id')).toBe('t1');
-    });
-  });
-
   describe('streamAgentInsights', () => {
-    it('should POST the body as JSON and ask for an event stream', async () => {
+    it("should POST the promise's body, unchanged, to its callback_url", async () => {
       fetchMock.mockResolvedValue(
         new Response(bodyOf(sse([['end', { result_id: 'r1' }]])))
       );
       const controller = new AbortController();
+      const promise = promiseWith();
 
       await collect(
-        streamAgentInsights(
-          clientWith({}),
-          'search',
-          { shopper_input: 'q' },
-          {
-            signal: controller.signal,
-          }
-        )
+        streamAgentInsights(promise, { signal: controller.signal })
       );
 
       const [url, init = {}] = fetchMock.mock.calls[0];
-      expect(url).toBe(
-        'https://agent.cnstrc.com/v1/agent_insights/search?key=k'
-      );
+      expect(url).toBe(CALLBACK_URL);
       expect(init.method).toBe('POST');
       expect(init.headers).toEqual({
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
       });
-      expect(JSON.parse(init.body as string)).toEqual({ shopper_input: 'q' });
+      expect(JSON.parse(init.body as string)).toEqual(promise.body);
       expect(init.signal).toBe(controller.signal);
+    });
+
+    it("should use POST when the promise doesn't say", async () => {
+      fetchMock.mockResolvedValue(
+        new Response(bodyOf(sse([['end', { result_id: 'r1' }]])))
+      );
+      await collect(streamAgentInsights(promiseWith({ method: undefined })));
+      expect(fetchMock.mock.calls[0][1]?.method).toBe('POST');
+    });
+
+    it('should throw with status 204 when the agent produced nothing', async () => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+      const error = await collect(streamAgentInsights(promiseWith())).catch(
+        (e: unknown) => e
+      );
+
+      expect(error).toBeInstanceOf(AgentInsightsRequestError);
+      expect(error).toMatchObject({ status: 204 });
     });
 
     it('should yield typed events for start, message, item_results, server_error and end', async () => {
@@ -158,9 +133,7 @@ describe('agentInsightsClient', () => {
         )
       );
 
-      expect(
-        await collect(streamAgentInsights(clientWith({}), 'search', {}))
-      ).toEqual([
+      expect(await collect(streamAgentInsights(promiseWith()))).toEqual([
         { type: 'start', resultId: 'r1', threadId: 't1' },
         {
           type: 'message',
@@ -201,9 +174,9 @@ describe('agentInsightsClient', () => {
         )
       );
 
-      expect(
-        await collect(streamAgentInsights(clientWith({}), 'search', {}))
-      ).toEqual([{ type: 'end', resultId: 'r1' }]);
+      expect(await collect(streamAgentInsights(promiseWith()))).toEqual([
+        { type: 'end', resultId: 'r1' },
+      ]);
     });
 
     it('should stop after end', async () => {
@@ -218,9 +191,9 @@ describe('agentInsightsClient', () => {
         )
       );
 
-      expect(
-        await collect(streamAgentInsights(clientWith({}), 'search', {}))
-      ).toEqual([{ type: 'end', resultId: 'r1' }]);
+      expect(await collect(streamAgentInsights(promiseWith()))).toEqual([
+        { type: 'end', resultId: 'r1' },
+      ]);
     });
 
     it('should throw AgentInsightsRequestError with status, code and trace id', async () => {
@@ -235,9 +208,9 @@ describe('agentInsightsClient', () => {
         )
       );
 
-      const error = await collect(
-        streamAgentInsights(clientWith({}), 'search', {})
-      ).catch((e: unknown) => e);
+      const error = await collect(streamAgentInsights(promiseWith())).catch(
+        (e: unknown) => e
+      );
 
       expect(error).toBeInstanceOf(AgentInsightsRequestError);
       expect(error).toMatchObject({
@@ -253,9 +226,9 @@ describe('agentInsightsClient', () => {
         new Response('Service Unavailable', { status: 503 })
       );
 
-      const error = await collect(
-        streamAgentInsights(clientWith({}), 'search', {})
-      ).catch((e: unknown) => e);
+      const error = await collect(streamAgentInsights(promiseWith())).catch(
+        (e: unknown) => e
+      );
 
       expect(error).toBeInstanceOf(AgentInsightsRequestError);
       expect(error).toMatchObject({ status: 503, code: undefined });
@@ -264,9 +237,9 @@ describe('agentInsightsClient', () => {
     it('should throw a 500-status error when a 200 has no body', async () => {
       fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
 
-      const error = await collect(
-        streamAgentInsights(clientWith({}), 'search', {})
-      ).catch((e: unknown) => e);
+      const error = await collect(streamAgentInsights(promiseWith())).catch(
+        (e: unknown) => e
+      );
 
       expect(error).toBeInstanceOf(AgentInsightsRequestError);
       expect(error).toMatchObject({ status: 500 });
