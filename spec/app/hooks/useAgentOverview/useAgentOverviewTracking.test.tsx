@@ -328,6 +328,34 @@ describe('useAgentOverview tracking', () => {
     });
   });
 
+  it("should give each category's view its own searchResultId", async () => {
+    respondWith(
+      streamOf(
+        start,
+        itemResults('Shirt', 's1', ['a']),
+        itemResults('Pants', 's2', ['b']),
+        itemResults('Shorts', 's3', ['c']),
+        itemResults('Jacket', 's4', ['d']),
+        end
+      )
+    );
+    const { result } = renderOverview();
+    await waitFor(() => expect(result.current.status).toBe('done'));
+
+    act(() => setInView(true));
+
+    expect(
+      tracker.trackAgentResultView.mock.calls.map(
+        ([params]) => (params as { searchResultId: string }).searchResultId
+      )
+    ).toEqual(['s1', 's2', 's3', 's4']);
+    const pants = result.current.sections[1];
+    act(() => result.current.trackProductClick(pants.products[0], pants));
+    expect(tracker.trackAgentResultClick).toHaveBeenCalledWith(
+      expect.objectContaining({ searchResultId: 's2', itemName: 'b' })
+    );
+  });
+
   it('should send a view for a section that arrives while in view', async () => {
     const controlled = controlledStream();
     respondWith(controlled.stream);
