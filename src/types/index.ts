@@ -88,11 +88,15 @@ export interface IAgentOverviewCallbacks {
   /** Builds a URL for a product card link. If not provided, the product's default URL is used. */
   getProductUrl?: (product: IProduct) => string;
   /**
-   * Called when search promised an overview but the agent produced nothing (a 204), so the page can
-   * collapse the space it kept for one. Not called for a search without a promise.
+   * Called when search promised an overview but the agent turned it down (a 204, or a 422 for a query
+   * it finds unsuitable), so the page can collapse the space it kept for one. Not called for a search
+   * without a promise.
    */
   onNoOverview?: () => void;
-  /** Called when the overview request fails, with any status but 200 or 204. Nothing is shown to the shopper. */
+  /**
+   * Called when the overview fails: any other status but 200, or a `server_error` while it streams.
+   * Nothing is shown to the shopper.
+   */
   onError?: (error: IAgentOverviewError) => void;
 }
 
@@ -110,7 +114,6 @@ export type Translations = {
   'CioAgentOverview.carousel.label'?: string;
 };
 
-/** Where the overview is shown. */
 /** One set of products in an overview, as one `item_results` event streamed it. */
 export interface IAgentOverviewSection {
   /** What the set is, such as "Casual Shirt". */
@@ -131,7 +134,7 @@ export interface IAgentOverviewError {
 
 /**
  * Where an overview request is: `idle` without an AI Overview promise, `loading` until the stream
- * opens, `streaming` while it arrives, then `done`, `no-overview` (the agent produced nothing) or
+ * opens, `streaming` while it arrives, then `done`, `no-overview` (the agent turned it down) or
  * `error`.
  */
 export type AgentOverviewStatus =

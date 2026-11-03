@@ -190,7 +190,8 @@ describe('useAgentOverview', () => {
     });
   });
 
-  it('should keep products that arrived before a server_error and end done', async () => {
+  it('should be error on a server_error even after products, as the guide hides the overview', async () => {
+    const onError = vi.fn();
     mockedStream.mockReturnValue(
       streamOf(
         start,
@@ -204,9 +205,35 @@ describe('useAgentOverview', () => {
         end
       )
     );
-    const { result } = renderHook(() => useAgentOverview(build()));
-    await waitFor(() => expect(result.current.status).toBe('done'));
-    expect(result.current.sections).toHaveLength(1);
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ callbacks: { onError } }))
+    );
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toEqual({ status: 500, message: 'boom' });
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be no-overview when the agent declines the query with a 422', async () => {
+    const onNoOverview = vi.fn();
+    const onError = vi.fn();
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { result } = renderHook(() =>
+      useAgentOverview(build({ callbacks: { onNoOverview, onError } }))
+    );
+
+    act(() =>
+      controlled.fail(
+        new AgentInsightsRequestError(
+          422,
+          'The provided query is not suitable for AI Shopping Agent processing',
+          { code: 'client_error' }
+        )
+      )
+    );
+    await waitFor(() => expect(result.current.status).toBe('no-overview'));
+    expect(onNoOverview).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('should keep products on screen when the connection drops mid-stream', async () => {

@@ -16,8 +16,12 @@ import {
   streamAgentOverview,
 } from '../services/agentOverviewClient';
 
-/** The status the callback answers when search promised an overview but the agent produced none. */
-const NO_OVERVIEW_STATUS = 204;
+/**
+ * The statuses with which the agent turns down a promised overview: 204 when it produced nothing,
+ * 422 (`client_error`) when it finds the query unsuitable, e.g. a keyword search some indexes still
+ * send a promise for.
+ */
+const NO_OVERVIEW_STATUSES = new Set([204, 422]);
 
 function initialState(promise: IAgenticPromise | null): UseAgentOverviewReturn {
   return {
@@ -157,11 +161,12 @@ export default function useAgentOverview(
       }
 
       if (!isCurrent()) return;
-      if (sections.length > 0) {
-        update({ status: 'done' });
-      } else if (serverError) {
+      // The agent failing mid-stream hides the overview, products and all, as the guide says.
+      if (serverError) {
         update({ status: 'error', error: serverError });
         notify(() => callbacksRef.current?.onError?.(serverError));
+      } else if (sections.length > 0) {
+        update({ status: 'done' });
       } else {
         update({ status: 'no-overview' });
         notify(() => callbacksRef.current?.onNoOverview?.());
@@ -170,14 +175,15 @@ export default function useAgentOverview(
 
     run().catch((err: unknown) => {
       if (!isCurrent() || isAbort(err)) return;
-      // The connection dropped after products were shown: keep them.
+      // The connection dropped after products were shown: keep them. Unlike a server_error, the
+      // agent didn't say the overview failed.
       if (sections.length > 0) {
         update({ status: 'done' });
         return;
       }
       if (
         err instanceof AgentInsightsRequestError &&
-        err.status === NO_OVERVIEW_STATUS
+        NO_OVERVIEW_STATUSES.has(err.status)
       ) {
         update({ status: 'no-overview' });
         notify(() => callbacksRef.current?.onNoOverview?.());

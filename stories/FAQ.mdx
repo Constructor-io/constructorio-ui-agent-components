@@ -14,7 +14,7 @@ Your bundler can't parse the ESNext build. Resolve the package with `require` to
 
 ## Agent Overview: nothing renders
 
-Simple keyword searches, such as a brand or a product name, have no AI Overview promise in the search response, so there's no request and nothing renders. A promise the agent declines (a 204) renders nothing and calls `callbacks.onNoOverview`; a failed request renders nothing and calls `callbacks.onError`. Check too that AI Overview is turned on for your index (descriptive searches have `agentic_promises` in the search response), and that you pass the response's `agentic_promises`, not the whole response.
+Simple keyword searches, such as a brand or a product name, usually have no AI Overview promise in the search response, so there's no request and nothing renders. A promise the agent turns down (a 204, or a 422 for a query it finds unsuitable) renders nothing and calls `callbacks.onNoOverview`; a failed request, or a `server_error` while streaming, renders nothing and calls `callbacks.onError`. Check too that AI Overview is turned on for your index (descriptive searches have `agentic_promises` in the search response), and that you pass the response's `agentic_promises`, not the whole response.
 
 ## Agent Overview: it keeps reloading
 

@@ -237,6 +237,28 @@ describe('CioAgentOverview', () => {
     expect(root(container)).toBeEmptyDOMElement();
   });
 
+  it('should hide products already shown when a server_error follows', async () => {
+    const controlled = controlledStream();
+    mockedStream.mockReturnValue(controlled.stream);
+    const { container } = renderOverview();
+    act(() => {
+      controlled.push(start);
+      controlled.push(itemResults('A', 's1', ['a']));
+    });
+    await screen.findByRole('link');
+
+    act(() => {
+      controlled.push({
+        type: 'server_error',
+        resultId: 'r1',
+        statusCode: 500,
+        message: 'boom',
+      });
+      controlled.push(end);
+    });
+    await waitFor(() => expect(root(container)).toBeEmptyDOMElement());
+  });
+
   it('should render nothing for an error', async () => {
     const onError = vi.fn();
     mockedStream.mockImplementation(() => {

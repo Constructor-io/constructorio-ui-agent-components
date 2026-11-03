@@ -25,4 +25,4 @@ const { status, message, sections, resultId, threadId, error, displayName } =
 `}
 </Markdown>
 
-The message usually arrives before the products. A set whose products have no name or image is left out. If the stream fails after some products arrived, `status` is `done` with those products.
+The message usually arrives before the products. A set whose products have no name or image is left out. A `server_error` ends in `error`, even after products arrived. If the connection drops after some products arrived, `status` is `done` with those products.
