@@ -25,9 +25,8 @@ describe('standalone bundle', () => {
     code = chunk?.code ?? '';
   }, 120_000);
 
-  // The JS client checks `typeof process` first, so only NODE_ENV is a problem.
-  it('does not read process.env.NODE_ENV', () => {
-    expect(code).not.toMatch(/\bprocess\.env\.NODE_ENV\b/);
+  it('does not read process.env', () => {
+    expect(code).not.toMatch(/\bprocess\.env\b/);
   });
 
   it('loads on a page that has no process global', () => {
