@@ -38,6 +38,14 @@ export default function ProductCard({
       href={resolvedHref || undefined}
       onClick={onClick}
     >
+      {product.label?.trim() && (
+        <span
+          className="cio-agent-overview-product-label"
+          title={product.label}
+        >
+          {product.label}
+        </span>
+      )}
       <CioProductCard product={libraryProduct}>
         <CioProductCard.ImageSection />
         <CioProductCard.Content>

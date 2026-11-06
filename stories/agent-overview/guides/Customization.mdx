@@ -14,10 +14,13 @@ Every rule is scoped to `.cio-agent-overview-root`, and every element has a `cio
 ```
 .cio-agent-overview-root
   .cio-agent-overview-section.cio-agent-overview-card   the AI Overview card
-    .cio-agent-overview-badge          "AI Overview"
-    .cio-agent-overview-message        one per paragraph
-    .cio-agent-overview-title          a single-category overview's row heading
-    .cio-agent-overview-carousel       the products
+    .cio-agent-overview-badge                           "AI Overview"
+    .cio-agent-overview-message                         one per paragraph
+    .cio-agent-overview-title                           a single-category overview's row heading
+    .cio-agent-overview-carousel                        the products
+      .cio-agent-overview-product-card                  each product's link
+        .cio-agent-overview-product-label               a multi-category overview's category title
+        .cio-product-card                               the card
 ```
 
 Until the first message arrives, the card holds the badge and a `.cio-agent-overview-skeleton-section`; until the first products arrive, the message is followed by `.cio-agent-overview-skeleton-products`. When [nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders), the root is empty.

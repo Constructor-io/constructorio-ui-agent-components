@@ -145,6 +145,16 @@ describe('CioAgentOverview', () => {
     ).toHaveClass('cio-agent-overview-section-title');
   });
 
+  it('should head a single-category set even when filtering leaves one product', async () => {
+    const set = itemResults('Summer Shirts', 's1', ['a', 'b']);
+    if (set.type === 'item_results') delete set.results[1].data!.image_url;
+    mockedStream.mockReturnValue(streamOf(start, set, end));
+    renderOverview();
+    expect(
+      await screen.findByRole('heading', { name: 'Summer Shirts' })
+    ).toBeInTheDocument();
+  });
+
   it('should not head a multi-category overview', async () => {
     mockedStream.mockReturnValue(
       streamOf(
@@ -212,6 +222,24 @@ describe('CioAgentOverview', () => {
       controlled.push(end);
     });
     await waitFor(() => expect(card()).toHaveAttribute('aria-busy', 'false'));
+  });
+
+  it('should show each category label in a multi-category answer', async () => {
+    mockedStream.mockReturnValue(
+      streamOf(
+        start,
+        itemResults('Casual Shirt', 's1', ['Shirt']),
+        itemResults('Casual Pants', 's2', ['Pants']),
+        end
+      )
+    );
+    renderOverview();
+    expect(await screen.findByText('Casual Shirt')).toHaveClass(
+      'cio-agent-overview-product-label'
+    );
+    expect(screen.getByText('Casual Pants')).toHaveClass(
+      'cio-agent-overview-product-label'
+    );
   });
 
   it('should split the message into paragraphs', async () => {
