@@ -50,7 +50,7 @@
   "scripts": {
     "build:lib": "vite build --config vite.lib.config.ts",
     "build:standalone": "vite build --config vite.standalone.config.ts",
-    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly && node bin/resolve-type-aliases.mjs dist/types",
     "build": "npm run build:lib && npm run build:standalone && npm run build:types",
     "prepublishOnly": "npm run build && npm run check-license",
     "lint": "eslint src spec stories .storybook",
