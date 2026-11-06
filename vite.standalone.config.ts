@@ -16,6 +16,11 @@ export default defineConfig({
       '@src': path.resolve(dirname, 'src'),
     },
   },
+  // This bundle includes React and runs straight in the browser, where there's no `process`.
+  // Library mode leaves React's `process.env.NODE_ENV` checks in, so replace them here.
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
   build: {
     lib: {
       entry: path.resolve(dirname, 'src/standalone.tsx'),
