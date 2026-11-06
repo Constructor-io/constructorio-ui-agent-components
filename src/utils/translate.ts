@@ -6,6 +6,8 @@ const defaultTranslations: Translations = {
   'CioAgentOverview.carousel.previous': 'Show previous items',
   'CioAgentOverview.carousel.next': 'Show next items',
   'CioAgentOverview.carousel.label': 'Products',
+  'CioAgentOverview.status.loading': 'Loading AI Overview',
+  'CioAgentOverview.status.done': 'AI Overview loaded',
 };
 
 /**
