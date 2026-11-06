@@ -1,6 +1,6 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 
-<Meta title="Guides/Integration Guide" />
+<Meta title="Agent Overview/Integration Guide" />
 
 # Integration Guide
 
@@ -9,8 +9,6 @@ import { Meta } from '@storybook/addon-docs/blocks';
    ```bash
    npm install @constructor-io/constructorio-ui-agent-components
    ```
-
-   Needs React 16.12 or later.
 
 2. **Render it** with the shopper's intent, usually their search query.
 
@@ -28,15 +26,15 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
    Ask your Integration Engineer for the domains. Nothing is requested until `intent` and both domains are set. A new `intent` or `domains` object starts over, so define `domains` outside your component, or memoize it.
 
-3. **Link the sections.** Without `getViewMoreUrl`, sections have no "View more" link. See [Callbacks](?path=/docs/guides-callbacks--docs).
+3. **Link the sections.** Without `getViewMoreUrl`, sections have no "View more" link. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
 
    ```jsx
    callbacks={{ getViewMoreUrl: (section) => `/search?q=${encodeURIComponent(section.title)}` }}
    ```
 
-4. **Style it.** See [Customization](?path=/docs/guides-customization--docs).
+4. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
 
-5. **Need your own markup?** See [Custom UI](?path=/docs/guides-custom-ui--docs).
+5. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
 
 ## Without React
 
@@ -56,4 +54,4 @@ CioAgentOverview.init({
 });
 ```
 
-It takes the same props. See [JavaScript Bundle](?path=/docs/components-utilities-javascript-bundle--docs) for `update` and `destroy`.
+It takes the same props. See [JavaScript Bundle](?path=/docs/agent-overview-components-utilities-javascript-bundle--docs) for `update` and `destroy`.
