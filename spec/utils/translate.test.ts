@@ -28,33 +28,41 @@ describe('translateLabel', () => {
 
 describe('translate', () => {
   it('returns default translation for known keys', () => {
-    expect(translate('CioAgentOverview.section.aiBadge')).toBe(
-      'Generated with AI'
-    );
-    expect(translate('CioAgentOverview.section.viewMore')).toBe('View More');
     expect(translate('CioAgentOverview.skeleton.thinking')).toBe('Thinking');
-    expect(translate('CioAgentOverview.error.message')).toBe(
-      'Something went wrong. Please try again.'
-    );
+    expect(translate('CioAgentOverview.carousel.label')).toBe('Products');
+  });
+
+  it('names the overview badge AI Overview', () => {
+    expect(translate('CioAgentOverview.badge')).toBe('AI Overview');
+  });
+
+  it('has no defaults for the removed category, error and section keys', () => {
+    [
+      'CioAgentOverview.categories.viewSuggestions',
+      'CioAgentOverview.categories.carouselLabel',
+      'CioAgentOverview.error.message',
+      'CioAgentOverview.section.aiBadge',
+      'CioAgentOverview.section.viewMore',
+    ].forEach((key) => expect(translate(key)).toBe(key));
   });
 
   it('returns custom translation when override is provided', () => {
     const translations = {
-      'CioAgentOverview.section.aiBadge': 'Custom AI Badge',
+      'CioAgentOverview.skeleton.thinking': 'Working on it',
     } as const;
 
-    expect(translate('CioAgentOverview.section.aiBadge', translations)).toBe(
-      'Custom AI Badge'
+    expect(translate('CioAgentOverview.skeleton.thinking', translations)).toBe(
+      'Working on it'
     );
   });
 
   it('falls back to default when override does not include the key', () => {
     const translations = {
-      'CioAgentOverview.section.aiBadge': 'Custom badge',
+      'CioAgentOverview.skeleton.thinking': 'Working on it',
     } as const;
 
-    expect(translate('CioAgentOverview.section.viewMore', translations)).toBe(
-      'View More'
+    expect(translate('CioAgentOverview.carousel.label', translations)).toBe(
+      'Products'
     );
   });
 
@@ -63,18 +71,18 @@ describe('translate', () => {
   });
 
   it('returns default when translations argument is undefined', () => {
-    expect(translate('CioAgentOverview.section.aiBadge', undefined)).toBe(
-      'Generated with AI'
+    expect(translate('CioAgentOverview.skeleton.thinking', undefined)).toBe(
+      'Thinking'
     );
   });
 
   it('prefers custom translation over default', () => {
     const translations = {
-      'CioAgentOverview.categories.viewSuggestions': 'Show Suggestions',
+      'CioAgentOverview.skeleton.thinking': 'Loading',
     } as const;
 
-    expect(
-      translate('CioAgentOverview.categories.viewSuggestions', translations)
-    ).toBe('Show Suggestions');
+    expect(translate('CioAgentOverview.skeleton.thinking', translations)).toBe(
+      'Loading'
+    );
   });
 });

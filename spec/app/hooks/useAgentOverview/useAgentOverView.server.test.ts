@@ -1,24 +1,32 @@
+// @vitest-environment node
+// A server has no window, so the hook uses useEffect there, as in production.
 import { renderHookServerSide } from '@spec/__tests__/utils.server';
 import * as factories from '@spec/factory';
 
 import useAgentOverview from '@src/app/hooks/useAgentOverview';
+import { streamAgentOverview } from '@src/app/services/agentOverviewClient';
+
+vi.mock('@src/app/services/agentOverviewClient', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  streamAgentOverview: vi.fn(),
+}));
 
 describe(`${useAgentOverview.name}: server`, () => {
   const props = factories.agentOverviewProps.build();
 
-  it('should return initial state on server', () => {
+  it('should render the loading state without requesting on the server', () => {
     const { result } = renderHookServerSide(() => useAgentOverview(props), {
       initialProps: props,
     });
     expect(result).toEqual({
-      phase: 'categories',
-      categories: [],
-      categoryDescription: '',
+      status: 'loading',
+      message: '',
       sections: [],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      selectCategory: expect.any(Function),
-      isLoading: false,
+      resultId: null,
+      threadId: null,
       error: null,
+      displayName: 'AI Overview',
     });
+    expect(streamAgentOverview).not.toHaveBeenCalled();
   });
 });

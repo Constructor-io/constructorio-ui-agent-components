@@ -25,6 +25,15 @@
 }
 
 
+/* The shared carousel pads its clipping box by 12px, which pushes its edges past the content into
+   the surrounding padding: a card scrolled almost out of view then shows as a faded sliver there.
+   Clip at the content's edges instead. */
 .cio-agent-overview-carousel-content {
   padding-left: 0;
+  padding-right: 0;
+}
+
+/* The shared carousel centres each item vertically; stretch them so cards line up. */
+.cio-agent-overview-carousel-content > * {
+  align-items: stretch;
 }

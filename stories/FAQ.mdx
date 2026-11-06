@@ -6,7 +6,15 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 ## `Module parse failed: Unexpected token`
 
-Your bundler can't parse the ESNext build. Resolve the package with `require` to get the CommonJS build, which is ES2015.
+Both builds use modern JavaScript, such as optional chaining. If your bundler's loader skips `node_modules`, transpile this package too. With webpack and Babel:
+
+```js
+{
+  test: /\.m?js$/,
+  include: /node_modules\/@constructor-io\/constructorio-ui-agent-components/,
+  use: 'babel-loader',
+}
+```
 
 ## ESLint: `Unable to resolve path to module '…/styles.css'`
 
@@ -14,8 +22,22 @@ Your bundler can't parse the ESNext build. Resolve the package with `require` to
 
 ## Agent Overview: nothing renders
 
-No request is made until `intent`, `domains.suggestions` and `domains.results` are all set. Pass `apiKey` or `cioJsClient` too.
+That's expected for many searches:
+
+- **No promise.** Simple keyword searches, such as a brand or a product name, usually have no AI Overview promise in the search response, so there's no request.
+- **The agent turns it down.** It answers the promise with a 204 (nothing produced) or a 422 (a query it finds unsuitable), or the stream ends with no products to show. The component calls `callbacks.onNoOverview`.
+- **It fails.** Any other status, or a `server_error` while streaming, which also hides products already shown. The component calls `callbacks.onError`.
+
+If no search ever shows one, check that you pass the response's `agentic_promises`, not the whole response, and see the next question.
+
+## Agent Overview: requests return errors, or no search has a promise
+
+AI Overview must be turned on for your index. A 400 from the callback, or no `agentic_promises` even for descriptive searches, means it isn't. Contact your Constructor Integration Engineer.
+
+## Agent Overview: A/B testing
+
+Not supported yet. An A/B test compares views and clicks, and Agent Overview doesn't [send behavioral events](?path=/docs/agent-overview-callbacks--docs#tracking) yet.
 
 ## Agent Overview: it keeps reloading
 
-A new `domains` object restarts the stream, and an inline `domains={{ … }}` is a new object on every render. Define it outside your component, or memoize it. The same goes for `cioJsClient`.
+A promise with a new `callback_url` or `body` starts a new request; a new but equal one doesn't. Each search response has its own `callback_url`, so pass the response for the search on screen, not one fetched again on every render.

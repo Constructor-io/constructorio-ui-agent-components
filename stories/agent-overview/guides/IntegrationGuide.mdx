@@ -1,57 +1,81 @@
-import { Meta } from '@storybook/addon-docs/blocks';
+import { Meta, Canvas } from '@storybook/addon-docs/blocks';
+import * as LayoutStories from '../examples/Layout.stories';
 
 <Meta title="Agent Overview/Integration Guide" />
 
 # Integration Guide
 
-1. **Install**
+`CioAgentOverview` renders AI Overview: an AI-written summary and a row of products above your search results. Your Constructor search decides which searches get one: its response carries `agentic_promises`, and a search that suits an overview has a promise for it. The component sends that promise and renders what comes back. Keyword searches, such as a brand, usually have no promise and see no change.
 
-   ```bash
-   npm install @constructor-io/constructorio-ui-agent-components
-   ```
+Steps 1–3 are all you need. Everything after is optional.
 
-2. **Render it** with the shopper's intent, usually their search query.
+## 1. Turn it on
 
-   ```jsx
-   import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
-   import '@constructor-io/constructorio-ui-agent-components/styles.css';
+Ask your Integration Engineer to turn AI Overview on for your index. To check, search a descriptive query, such as "gift for my dad who loves grilling", and look for `agentic_promises` in the search response.
 
-   const domains = {
-     suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
-     results: 'YOUR_RESULTS_DOMAIN',
-   };
+## 2. Install
 
-   <CioAgentOverview apiKey="YOUR_API_KEY" intent={query} domains={domains} />;
-   ```
+```bash
+npm install @constructor-io/constructorio-ui-agent-components
+```
 
-   Ask your Integration Engineer for the domains. Nothing is requested until `intent` and both domains are set. A new `intent` or `domains` object starts over, so define `domains` outside your component, or memoize it.
+## 3. Render it above your results
 
-3. **Link the sections.** Without `getViewMoreUrl`, sections have no "View more" link. See [Callbacks](?path=/docs/agent-overview-callbacks--docs).
+Place it between your search header and the first row of results, with the `agentic_promises` from the search response for the page:
 
-   ```jsx
-   callbacks={{ getViewMoreUrl: (section) => `/search?q=${encodeURIComponent(section.title)}` }}
-   ```
+```jsx
+import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components';
+import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-4. **Style it.** See [Customization](?path=/docs/agent-overview-customization--docs).
+export default function SearchResultsPage({ searchResponse }) {
+  return (
+    <>
+      <CioAgentOverview
+        agenticPromises={searchResponse.response.agentic_promises}
+      />
+      {/* your results */}
+    </>
+  );
+}
+```
 
-5. **Need your own markup?** See [Custom UI](?path=/docs/agent-overview-custom-ui--docs).
+<Canvas of={LayoutStories.MultiCategory} />
 
-## Without React
+A search for one kind of product gets one row of products under a heading. A search that spans several, such as a gift or a routine, gets one product per category, each card labelled with its category, as above.
 
-The JavaScript bundle includes React and the styles, and mounts the component into an element:
+The component finds the promise whose `pod.id` is `search_ai_overview` and sends its `body`, unchanged, to its `callback_url`. Search wrote both for the query, filters and shopper it served, and the URL already carries your key and the shopper's identity, so there's nothing else to pass. Render your results as soon as search returns: the overview never holds them up.
+
+Pass each new search response's `agentic_promises`. A new search, or a filter that sends a new promise, aborts the overview still streaming, so an old overview never lands on new results.
+
+**Not using React?** The JavaScript bundle includes React and the styles, and takes the same props:
 
 ```js
 import CioAgentOverview from '@constructor-io/constructorio-ui-agent-components/constructorio-ui-agent-components-standalone';
 
 CioAgentOverview.init({
   selector: '#agent-overview',
-  apiKey: 'YOUR_API_KEY',
-  intent: 'I want to buy shoes',
-  domains: {
-    suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
-    results: 'YOUR_RESULTS_DOMAIN',
-  },
+  agenticPromises: searchResponse.response.agentic_promises,
 });
 ```
 
-It takes the same props. See [JavaScript Bundle](?path=/docs/agent-overview-components-utilities-javascript-bundle--docs) for `update` and `destroy`.
+→ [JavaScript Bundle](?path=/docs/agent-overview-components-utilities-javascript-bundle--docs)
+
+## 4. Handle searches without an overview
+
+Some searches render nothing. Use `callbacks.onNoOverview` to collapse space you kept for it, and `callbacks.onError` to log failures.
+
+→ [Callbacks](?path=/docs/agent-overview-callbacks--docs), and [when nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders)
+
+## 5. Match your site
+
+Restyle, theme or translate it.
+
+→ [Customization](?path=/docs/agent-overview-customization--docs)
+
+## 6. Render your own markup
+
+→ [Custom UI](?path=/docs/agent-overview-custom-ui--docs)
+
+## 7. Check it works
+
+Search a descriptive query. In the network tab, filter on `agent_insights`: a `POST` to the promise's `callback_url` answers 200 with an event stream, and the overview appears above your results. A keyword search such as a brand makes no such request. For problems, see the [FAQ](?path=/docs/faq--docs). For every prop, see [CioAgentOverview](?path=/docs/agent-overview-components-utilities-cioagentoverview--docs).

@@ -1,11 +1,18 @@
 import { act } from '@testing-library/react';
 
+import { aiOverviewPromise } from '@spec/factory';
+
 import CioAgentOverview from '@src/standalone';
+
+const promisesFor = (search: string) => [aiOverviewPromise(search)];
 
 // Mock the underlying React component so we don't need stream infrastructure
 vi.mock('@src/app', () => ({
   default: (props: Record<string, unknown>) => (
-    <div data-testid="mock-agent-overview" data-intent={props.intent} />
+    <div
+      data-testid="mock-agent-overview"
+      data-promises={JSON.stringify(props.agenticPromises)}
+    />
   ),
 }));
 
@@ -36,9 +43,7 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         result = CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'buy shoes',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('buy shoes'),
         });
       });
 
@@ -54,9 +59,7 @@ describe('CioAgentOverview standalone', () => {
 
       const result = CioAgentOverview.init({
         selector: '#nonexistent',
-        apiKey: 'test-key',
-        intent: 'buy shoes',
-        domains: { suggestions: 'suggest', results: 'results' },
+        agenticPromises: promisesFor('buy shoes'),
       });
 
       expect(result).toBeUndefined();
@@ -71,9 +74,7 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'first intent',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('first intent'),
         });
       });
 
@@ -81,9 +82,7 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         result = CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'second intent',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('second intent'),
         });
       });
 
@@ -95,9 +94,7 @@ describe('CioAgentOverview standalone', () => {
         act(() => {
           CioAgentOverview.init({
             selector: '#agent-root',
-            apiKey: 'test-key',
-            intent: 'buy shoes',
-            domains: { suggestions: 'suggest', results: 'results' },
+            agenticPromises: promisesFor('buy shoes'),
             includeCSS: false,
           });
         })
@@ -110,15 +107,15 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'buy shoes',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('buy shoes'),
         });
       });
 
       expect(() =>
         act(() => {
-          CioAgentOverview.update('#agent-root', { intent: 'buy pants' });
+          CioAgentOverview.update('#agent-root', {
+            agenticPromises: promisesFor('buy pants'),
+          });
         })
       ).not.toThrow();
     });
@@ -126,7 +123,9 @@ describe('CioAgentOverview standalone', () => {
     it('logs warning when updating non-existent instance', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      CioAgentOverview.update('#agent-root', { intent: 'buy pants' });
+      CioAgentOverview.update('#agent-root', {
+        agenticPromises: promisesFor('buy pants'),
+      });
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('#agent-root')
@@ -140,7 +139,9 @@ describe('CioAgentOverview standalone', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      CioAgentOverview.update('#nonexistent', { intent: 'buy pants' });
+      CioAgentOverview.update('#nonexistent', {
+        agenticPromises: promisesFor('buy pants'),
+      });
 
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('#nonexistent')
@@ -155,9 +156,7 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'buy shoes',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('buy shoes'),
         });
       });
 
@@ -168,7 +167,9 @@ describe('CioAgentOverview standalone', () => {
       // Updating after destroy should warn (no instance)
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      CioAgentOverview.update('#agent-root', { intent: 'buy pants' });
+      CioAgentOverview.update('#agent-root', {
+        agenticPromises: promisesFor('buy pants'),
+      });
       expect(consoleSpy).toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -183,18 +184,14 @@ describe('CioAgentOverview standalone', () => {
       act(() => {
         CioAgentOverview.init({
           selector: '#agent-root',
-          apiKey: 'test-key',
-          intent: 'buy shoes',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('buy shoes'),
         });
       });
 
       act(() => {
         CioAgentOverview.init({
           selector: '#agent-root-2',
-          apiKey: 'test-key',
-          intent: 'buy pants',
-          domains: { suggestions: 'suggest', results: 'results' },
+          agenticPromises: promisesFor('buy pants'),
         });
       });
 
@@ -204,8 +201,12 @@ describe('CioAgentOverview standalone', () => {
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      CioAgentOverview.update('#agent-root', { intent: 'new' });
-      CioAgentOverview.update('#agent-root-2', { intent: 'new' });
+      CioAgentOverview.update('#agent-root', {
+        agenticPromises: promisesFor('new'),
+      });
+      CioAgentOverview.update('#agent-root-2', {
+        agenticPromises: promisesFor('new'),
+      });
       expect(consoleSpy).toHaveBeenCalledTimes(2);
 
       consoleSpy.mockRestore();

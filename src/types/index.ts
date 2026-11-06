@@ -1,4 +1,10 @@
-import type ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
+import type { AgentInsightsPromise } from '../app/services/agentInsightsTypes';
+
+/**
+ * One entry of a Constructor search response's `agentic_promises`, passed as it came. The overview
+ * uses the one whose `pod.id` is `search_ai_overview`.
+ */
+export type IAgenticPromise = AgentInsightsPromise;
 
 /** Theme customization for the Agent Overview component. All properties map to CSS custom properties. */
 export interface CioAgentOverviewTheme {
@@ -73,18 +79,25 @@ export interface CioAgentOverviewTheme {
 
 /** Callback functions for handling user interactions within the Agent Overview component. */
 export interface IAgentOverviewCallbacks {
-  /** Called when a user clicks on a product card within a recommendation section. */
+  /** Called when a user clicks a product card, with the product set the product came from. */
   onProductClick?: (
     event: React.MouseEvent,
     product: IProduct,
-    section: IRecommendationSection
+    section: IAgentOverviewSection
   ) => void;
-  /** Called when a user clicks on a category card. */
-  onCategoryClick?: (category: ICategory) => void;
   /** Builds a URL for a product card link. If not provided, the product's default URL is used. */
   getProductUrl?: (product: IProduct) => string;
-  /** Builds a "View more" URL from section data (e.g. group title). If not provided, the link is hidden. */
-  getViewMoreUrl?: (section: IRecommendationSection) => string;
+  /**
+   * Called when search promised an overview but the agent turned it down (a 204, or a 422 for a query
+   * it finds unsuitable), so the page can collapse the space it kept for one. Not called for a search
+   * without a promise.
+   */
+  onNoOverview?: () => void;
+  /**
+   * Called when the overview fails: any other status but 200, or a `server_error` while it streams.
+   * Nothing is shown to the shopper.
+   */
+  onError?: (error: IAgentOverviewError) => void;
 }
 
 /**
@@ -92,35 +105,49 @@ export interface IAgentOverviewCallbacks {
  * All keys are optional — any non-provided translation will fall back to the English default.
  */
 export type Translations = {
-  'CioAgentOverview.section.aiBadge'?: string;
-  'CioAgentOverview.categories.viewSuggestions'?: string;
-  'CioAgentOverview.section.viewMore'?: string;
+  'CioAgentOverview.badge'?: string;
   'CioAgentOverview.skeleton.thinking'?: string;
   'CioAgentOverview.carousel.previous'?: string;
   'CioAgentOverview.carousel.next'?: string;
   'CioAgentOverview.carousel.label'?: string;
-  'CioAgentOverview.categories.carouselLabel'?: string;
-  'CioAgentOverview.error.message'?: string;
+  'CioAgentOverview.status.loading'?: string;
+  'CioAgentOverview.status.done'?: string;
 };
 
-/** Agent stream domain identifiers for fetching category suggestions and product results. */
-export interface IAgentOverviewDomains {
-  /** Domain used to fetch category suggestions. */
-  suggestions: string;
-  /** Domain used to fetch product results. */
-  results: string;
+/** One set of products in an overview, as one `item_results` event streamed it. */
+export interface IAgentOverviewSection {
+  /** What the set is, such as "Casual Shirt". */
+  title: string;
+  /** The id of the search or browse response the products came from, for your own tracking. */
+  searchResultId?: string;
+  products: IProduct[];
 }
+
+/** Why an overview request failed. */
+export interface IAgentOverviewError {
+  /** The HTTP status, or 0 when the request never got a response. */
+  status: number;
+  /** The API's error code, such as `rate_limit_exceeded`, when it sent one. */
+  code?: string;
+  message: string;
+}
+
+/**
+ * Where an overview request is: `idle` without an AI Overview promise, `loading` until the stream
+ * opens, `streaming` while it arrives, then `done`, `no-overview` (the agent turned it down) or
+ * `error`.
+ */
+export type AgentOverviewStatus =
+  'idle' | 'loading' | 'streaming' | 'done' | 'no-overview' | 'error';
 
 /** Props for the CioAgentOverview component and useAgentOverview hook. */
 export interface IAgentOverviewProps {
-  /** Constructor.io API key. Required if `cioJsClient` is not provided. */
-  apiKey?: string;
-  /** Pre-configured Constructor.io JS client instance. Takes precedence over `apiKey`. */
-  cioJsClient?: ConstructorIOClient;
-  /** The user's search intent that drives agent recommendations. */
-  intent: string;
-  /** Domain identifiers for the agent stream endpoints. */
-  domains: IAgentOverviewDomains;
+  /**
+   * `response.agentic_promises` from the Constructor search response for the page's search, as it
+   * came. The overview sends the promise for `search_ai_overview`; without one, nothing renders and
+   * no request is made. A new search response starts a new overview.
+   */
+  agenticPromises?: IAgenticPromise[] | null;
   /** Theme overrides for customizing visual appearance via CSS custom properties. */
   theme?: CioAgentOverviewTheme;
   /** Callback functions for handling user interactions. */
@@ -129,10 +156,21 @@ export interface IAgentOverviewProps {
   translations?: Translations;
 }
 
-/** A category suggestion returned by the agent stream. */
-export interface ICategory {
-  title: string;
-  imageUrl: string;
+/** What useAgentOverview returns. */
+export interface UseAgentOverviewReturn {
+  status: AgentOverviewStatus;
+  /** The overview's text. Several messages are joined with a blank line. */
+  message: string;
+  /** The product sets so far, in the order they arrived. */
+  sections: IAgentOverviewSection[];
+  /** The overview's id, once the stream has opened. */
+  resultId: string | null;
+  /** The conversation thread the overview opened, when it opened one. */
+  threadId: string | null;
+  /** Set when `status` is `error`. */
+  error: IAgentOverviewError | null;
+  /** The label search gave the overview (`pod.display_name`, e.g. "AI Overview"), when it sent a promise. */
+  displayName: string | null;
 }
 
 /** A product item within a recommendation section. */
@@ -145,13 +183,6 @@ export interface IProduct {
   itemId?: string;
   /** The variation's catalog id, when the response carries one. Sent with click tracking. */
   variationId?: string;
-}
-
-/** A group of recommended products with a title and description. */
-export interface IRecommendationSection {
-  title: string;
-  description: string;
-  products: IProduct[];
-  /** URL for the "View more" link. Populated via the `getViewMoreUrl` callback. */
-  viewMoreUrl?: string;
+  /** A short label shown on the card, such as the category a product was picked for. */
+  label?: string;
 }

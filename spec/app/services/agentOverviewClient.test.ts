@@ -1,95 +1,55 @@
-import ConstructorIOClient from '@constructor-io/constructorio-client-javascript';
+import { aiOverviewPromise } from '@spec/factory';
 
-import { createAgentStream } from '@src/app/services/agentOverviewClient';
+import { streamAgentInsights } from '@src/app/services/agentInsightsClient';
+import {
+  AI_OVERVIEW_POD_ID,
+  findAiOverviewPromise,
+  streamAgentOverview,
+} from '@src/app/services/agentOverviewClient';
 
-vi.mock('@constructor-io/constructorio-client-javascript', () => ({
-  default: vi.fn(),
+vi.mock('@src/app/services/agentInsightsClient', () => ({
+  streamAgentInsights: vi.fn(),
 }));
 
-const MockedClient = vi.mocked(ConstructorIOClient);
+const mockedStream = vi.mocked(streamAgentInsights);
 
-describe('createAgentStream', () => {
+describe('agentOverviewClient', () => {
   afterEach(() => {
-    MockedClient.mockReset();
+    mockedStream.mockReset();
   });
 
-  it('should throw if neither apiKey nor cioJsClient is provided', () => {
-    expect(() => createAgentStream({}, 'intent', 'domain')).toThrow(
-      'Either apiKey or cioJsClient must be provided'
-    );
-  });
-
-  it('should use cioJsClient when provided', () => {
-    const mockStream = new ReadableStream();
-    const mockClient = {
-      agent: {
-        getAgentResultsStream: vi.fn().mockReturnValue(mockStream),
-      },
-    };
-
-    const result = createAgentStream(
-      { cioJsClient: mockClient as never },
-      'buy shoes',
-      'example.com'
-    );
-
-    expect(mockClient.agent.getAgentResultsStream).toHaveBeenCalledWith(
-      'buy shoes',
-      { domain: 'example.com' }
-    );
-    expect(result).toBe(mockStream);
-    // Constructor should NOT be called when cioJsClient is provided
-    expect(MockedClient).not.toHaveBeenCalled();
-  });
-
-  it('should create a new client when apiKey is provided', () => {
-    const mockStream = new ReadableStream();
-    const mockGetStream = vi.fn().mockReturnValue(mockStream);
-
-    MockedClient.mockImplementation(function (this: unknown) {
-      (this as Record<string, unknown>).agent = {
-        getAgentResultsStream: mockGetStream,
+  describe('findAiOverviewPromise', () => {
+    it('should find the promise by its pod id, not its position', () => {
+      const overview = aiOverviewPromise();
+      const other = {
+        ...aiOverviewPromise(),
+        pod: { id: 'search_something_else' },
       };
-      return this as never;
+      expect(findAiOverviewPromise([other, overview])).toBe(overview);
+      expect(AI_OVERVIEW_POD_ID).toBe('search_ai_overview');
     });
 
-    const result = createAgentStream(
-      { apiKey: 'test-key' },
-      'buy shoes',
-      'my-domain'
-    );
-
-    expect(MockedClient).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: 'test-key',
-        sendTrackingEvents: true,
-      })
-    );
-    expect(mockGetStream).toHaveBeenCalledWith('buy shoes', {
-      domain: 'my-domain',
+    it.each([
+      ['no array', undefined],
+      ['null', null],
+      ['an empty array', []],
+      ['another pod only', [{ pod: { id: 'other' }, callback_url: 'u' }]],
+      [
+        'a promise without a callback_url',
+        [{ pod: { id: AI_OVERVIEW_POD_ID } }],
+      ],
+      ['entries that are not objects', [null, 'x', 1]],
+    ])('should return null for %s', (_, promises) => {
+      expect(findAiOverviewPromise(promises)).toBeNull();
     });
-    expect(result).toBe(mockStream);
   });
 
-  it('should prefer cioJsClient over apiKey when both are provided', () => {
-    const mockStream = new ReadableStream();
-    const mockClient = {
-      agent: {
-        getAgentResultsStream: vi.fn().mockReturnValue(mockStream),
-      },
-    };
-
-    const result = createAgentStream(
-      { apiKey: 'test-key', cioJsClient: mockClient as never },
-      'buy shoes',
-      'example.com'
-    );
-
-    expect(mockClient.agent.getAgentResultsStream).toHaveBeenCalledWith(
-      'buy shoes',
-      { domain: 'example.com' }
-    );
-    expect(result).toBe(mockStream);
-    expect(MockedClient).not.toHaveBeenCalled();
+  describe('streamAgentOverview', () => {
+    it('should send the promise as it is', () => {
+      const promise = aiOverviewPromise();
+      const signal = new AbortController().signal;
+      streamAgentOverview(promise, signal);
+      expect(mockedStream).toHaveBeenCalledWith(promise, { signal });
+    });
   });
 });

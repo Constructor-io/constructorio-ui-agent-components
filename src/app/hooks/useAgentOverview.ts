@@ -1,258 +1,239 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type {
+  IAgenticPromise,
+  IAgentOverviewError,
   IAgentOverviewProps,
-  ICategory,
+  IAgentOverviewSection,
   IProduct,
-  IRecommendationSection,
+  UseAgentOverviewReturn,
 } from '@src/types';
 import toProduct from '@src/utils/toProduct';
 
-import { createAgentStream } from '../services/agentOverviewClient';
-import { parseAgentStream } from '../services/agentStreamParser';
-import type { AgentStreamSearchResultEvent } from '../services/agentStreamTypes';
-type Phase = 'categories' | 'products';
+import { AgentInsightsRequestError } from '../services/agentInsightsClient';
+import type { AgentInsightsEvent } from '../services/agentInsightsTypes';
+import {
+  findAiOverviewPromise,
+  streamAgentOverview,
+} from '../services/agentOverviewClient';
 
-interface CategoriesResult {
-  categories: ICategory[];
-  description: string;
-}
+/** useLayoutEffect in the browser; on the server, where it warns, useEffect (which doesn't run). */
+const useIsomorphicLayoutEffect =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-function toProducts(event: AgentStreamSearchResultEvent): IProduct[] {
-  return (event.data.response?.results ?? [])
-    .map(toProduct)
-    .filter((p): p is IProduct => p !== null);
-}
+/** The hook's state, tagged with the request it belongs to. */
+type OverviewState = UseAgentOverviewReturn & { key: string };
 
-function toCategory(event: AgentStreamSearchResultEvent): ICategory | null {
-  const title =
-    typeof event.data.title === 'string' ? event.data.title.trim() : '';
-  const imageUrl = event.data.response?.results?.[0]?.data?.image_url ?? '';
-  if (!title || !imageUrl) return null;
-  return { title, imageUrl };
-}
+/**
+ * The statuses with which the agent turns down a promised overview: 204 when it produced nothing,
+ * 422 (`client_error`) when it finds the query unsuitable, e.g. a keyword search some indexes still
+ * send a promise for.
+ */
+const NO_OVERVIEW_STATUSES = new Set([204, 422]);
 
-async function consumeCategories(
-  props: Pick<
-    IAgentOverviewProps,
-    'apiKey' | 'cioJsClient' | 'intent' | 'domains'
-  >,
-  abortRef: React.RefObject<boolean>
-): Promise<CategoriesResult> {
-  const minDelay = new Promise((resolve) => setTimeout(resolve, 1000));
-
-  const rawStream = createAgentStream(
-    { apiKey: props.apiKey, cioJsClient: props.cioJsClient },
-    props.intent,
-    props.domains.suggestions
-  );
-  const events = parseAgentStream(rawStream);
-  const categories: ICategory[] = [];
-  let description = '';
-
-  for await (const event of events) {
-    if (abortRef.current) break;
-
-    if (event.type === 'message') {
-      description = event.data.text;
-    } else if (event.type === 'search_result') {
-      const category = toCategory(event);
-      if (category) categories.push(category);
-    }
-  }
-
-  await minDelay;
-  return { categories, description };
-}
-
-async function consumeProducts(
-  props: Pick<
-    IAgentOverviewProps,
-    'apiKey' | 'cioJsClient' | 'intent' | 'domains'
-  >,
-  abortRef: React.RefObject<boolean>,
-  onSection: (section: IRecommendationSection) => void
-): Promise<{ error: string | null }> {
-  const rawStream = createAgentStream(
-    { apiKey: props.apiKey, cioJsClient: props.cioJsClient },
-    props.intent,
-    props.domains.results
-  );
-  const events = parseAgentStream(rawStream);
-
-  let currentTitle = '';
-  let currentDescription = '';
-  let currentProducts: IProduct[] = [];
-
-  function flushSection() {
-    if (currentProducts.length > 0) {
-      onSection({
-        title: currentTitle,
-        description: currentDescription,
-        products: [...currentProducts],
-      });
-    }
-    currentTitle = '';
-    currentProducts = [];
-  }
-
-  for await (const event of events) {
-    if (abortRef.current) break;
-
-    if (event.type === 'message') {
-      currentDescription = event.data.text;
-    } else if (event.type === 'group') {
-      flushSection();
-      currentTitle = event.data.title;
-      currentDescription = event.data.description;
-    } else if (event.type === 'search_result') {
-      const products = toProducts(event);
-      if (event.data.title) {
-        flushSection();
-        currentTitle = event.data.title;
-      }
-      currentProducts.push(...products);
-    }
-  }
-  flushSection();
-
-  return { error: null };
+function initialState(promise: IAgenticPromise | null): UseAgentOverviewReturn {
+  return {
+    status: promise ? 'loading' : 'idle',
+    message: '',
+    sections: [],
+    resultId: null,
+    threadId: null,
+    error: null,
+    displayName: promise?.pod.display_name ?? null,
+  };
 }
 
 /**
- * Hook that manages the full Agent Overview lifecycle: streaming categories,
- * handling user selection, and streaming product recommendation sections.
+ * What a promise sends. A page re-rendering with new but equal promise objects keeps its overview;
+ * a new search, or a filter on the same one, changes the URL or the body.
+ */
+function requestKey(promise: IAgenticPromise | null): string {
+  return promise
+    ? `${promise.callback_url}\n${JSON.stringify(promise.body)}`
+    : '';
+}
+
+function toError(err: unknown): IAgentOverviewError {
+  if (err instanceof AgentInsightsRequestError) {
+    return {
+      status: err.status,
+      ...(err.code && { code: err.code }),
+      message: err.message,
+    };
+  }
+  return {
+    status: 0,
+    message: err instanceof Error ? err.message : String(err),
+  };
+}
+
+/** A product set from one `item_results` event, or null when none of its products can be shown. */
+function toSection(
+  event: Extract<AgentInsightsEvent, { type: 'item_results' }>
+): IAgentOverviewSection | null {
+  const products = event.results
+    .map(toProduct)
+    .filter((product): product is IProduct => product !== null);
+  if (products.length === 0) return null;
+  const title = event.title.trim();
+  // A set the API sent as one product is one category of a multi-category overview: label the
+  // card with it. Decided on what the API sent, not on what survives filtering.
+  const labelled =
+    event.results.length === 1 && title
+      ? [{ ...products[0], label: title }]
+      : products;
+  return {
+    title,
+    ...(event.searchResultId && { searchResultId: event.searchResultId }),
+    products: labelled,
+  };
+}
+
+function isAbort(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+/**
+ * Calls one of the site's callbacks. An exception in the site's code is logged, so it can't be
+ * taken for a failed request.
+ */
+function notify(callback: () => void): void {
+  try {
+    callback();
+  } catch (err) {
+    console.error('CioAgentOverview: a callback threw', err);
+  }
+}
+
+/**
+ * Streams the AI Overview that a Constructor search response promised: it sends the
+ * `search_ai_overview` promise from `agenticPromises` to its callback URL, then gives the overview
+ * message and each product set as they arrive. A new search response aborts the previous request.
  *
  * @example
  * ```tsx
- * const { phase, categories, sections, selectCategory, isLoading, error } =
- *   useAgentOverview({ apiKey: 'YOUR_API_KEY', intent: 'I want to buy shoes', domains });
+ * const { status, message, sections } = useAgentOverview({
+ *   agenticPromises: searchResponse.response.agentic_promises,
+ * });
  * ```
  */
-export default function useAgentOverview(props: IAgentOverviewProps): {
-  phase: Phase;
-  categories: ICategory[];
-  categoryDescription: string;
-  sections: IRecommendationSection[];
-  selectCategory: (category: ICategory) => void;
-  isLoading: boolean;
-  error: string | null;
-} {
-  const { apiKey, cioJsClient, intent, domains } = props;
-  const [phase, setPhase] = useState<Phase>('categories');
-  const [categories, setCategories] = useState<ICategory[]>([]);
-  const [categoryDescription, setCategoryDescription] = useState('');
-  const [sections, setSections] = useState<IRecommendationSection[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function useAgentOverview(
+  props: IAgentOverviewProps
+): UseAgentOverviewReturn {
+  const { callbacks } = props;
+  // The JavaScript bundle has no types, so anything may arrive here.
+  const promise = findAiOverviewPromise(props.agenticPromises);
+  const key = requestKey(promise);
 
-  const abortRef = useRef(false);
-  const phaseRef = useRef<Phase>('categories');
-  const bufferedSectionsRef = useRef<IRecommendationSection[]>([]);
-  const productsDoneRef = useRef(false);
-  const productsErrorRef = useRef<string | null>(null);
+  const [state, setState] = useState<OverviewState>(() => ({
+    ...initialState(promise),
+    key,
+  }));
 
-  useEffect(() => {
-    if (!intent || !domains?.suggestions || !domains?.results) return;
-
-    abortRef.current = false;
-    phaseRef.current = 'categories';
-    bufferedSectionsRef.current = [];
-    productsDoneRef.current = false;
-    productsErrorRef.current = null;
-
-    function resetAndFetch() {
-      setPhase('categories');
-      setIsLoading(true);
-      setError(null);
-      setCategories([]);
-      setCategoryDescription('');
-      setSections([]);
-
-      consumeCategories({ apiKey, cioJsClient, intent, domains }, abortRef)
-        .then((result) => {
-          if (abortRef.current) return;
-          setCategoryDescription(result.description);
-          setCategories(result.categories);
-        })
-        .catch((err: unknown) => {
-          if (!abortRef.current) {
-            setError(
-              err instanceof Error ? err.message : 'Failed to load categories'
-            );
-          }
-        })
-        .finally(() => setIsLoading(false));
-
-      consumeProducts(
-        { apiKey, cioJsClient, intent, domains },
-        abortRef,
-        (section) => {
-          if (abortRef.current) return;
-          if (phaseRef.current === 'products') {
-            setSections((prev) => [...prev, section]);
-          } else {
-            bufferedSectionsRef.current.push(section);
-          }
-        }
-      )
-        .then((result) => {
-          productsDoneRef.current = true;
-          productsErrorRef.current = result.error;
-        })
-        .catch((err: unknown) => {
-          productsDoneRef.current = true;
-          productsErrorRef.current =
-            err instanceof Error ? err.message : 'Failed to load results';
-        });
-    }
-
-    resetAndFetch();
-
-    return () => {
-      abortRef.current = true;
-    };
-  }, [apiKey, cioJsClient, intent, domains]);
-
-  function selectCategory(_category: ICategory) {
-    setPhase('products');
-    phaseRef.current = 'products';
-    setError(null);
-
-    // Flush any sections that arrived while in categories phase
-    if (bufferedSectionsRef.current.length > 0) {
-      setSections(bufferedSectionsRef.current);
-      bufferedSectionsRef.current = [];
-    }
-
-    if (productsDoneRef.current) {
-      if (productsErrorRef.current) {
-        setError(productsErrorRef.current);
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-
-    const interval = setInterval(() => {
-      if (!productsDoneRef.current) return;
-
-      clearInterval(interval);
-      if (productsErrorRef.current) {
-        setError(productsErrorRef.current);
-      }
-      setIsLoading(false);
-    }, 100);
+  // A new request starts from a clean state in the same render, so no frame shows the previous
+  // search's overview (React's "adjusting state when a prop changes"). The request keeps the
+  // promise it started with, so an equal promise on a re-render doesn't restart it.
+  const [request, setRequest] = useState({ key, promise });
+  if (request.key !== key) {
+    setRequest({ key, promise });
+    setState({ ...initialState(promise), key });
   }
 
-  return {
-    phase,
-    categories,
-    categoryDescription,
-    sections,
-    selectCategory,
-    isLoading,
-    error,
-  };
+  // The request on screen. Set as the new search commits, before the old request is aborted in the
+  // effect cleanup: a slow commit can leave a gap in which the old stream still sends events.
+  const committedKeyRef = useRef(key);
+  useIsomorphicLayoutEffect(() => {
+    committedKeyRef.current = request.key;
+  }, [request]);
+
+  const callbacksRef = useRef(callbacks);
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  });
+
+  useEffect(() => {
+    if (!request.promise) return undefined;
+    const sent: IAgenticPromise = request.promise;
+
+    const controller = new AbortController();
+    const isCurrent = () =>
+      !controller.signal.aborted && committedKeyRef.current === request.key;
+    // An update already queued when a new search resets the state is dropped, not applied to it.
+    const update = (patch: Partial<UseAgentOverviewReturn>) => {
+      if (!isCurrent()) return;
+      setState((prev) =>
+        prev.key === request.key ? { ...prev, ...patch } : prev
+      );
+    };
+
+    // Outside run() so a stream that breaks off can still finish with what already arrived.
+    const sections: IAgentOverviewSection[] = [];
+
+    async function run() {
+      const messages: string[] = [];
+      let serverError: IAgentOverviewError | null = null;
+
+      for await (const event of streamAgentOverview(sent, controller.signal)) {
+        if (!isCurrent()) return;
+        if (event.type === 'start') {
+          update({
+            status: 'streaming',
+            resultId: event.resultId,
+            threadId: event.threadId ?? null,
+          });
+        } else if (event.type === 'message') {
+          messages.push(event.text);
+          update({ message: messages.join('\n\n') });
+        } else if (event.type === 'item_results') {
+          const section = toSection(event);
+          if (section) {
+            sections.push(section);
+            update({ sections: [...sections] });
+          }
+        } else if (event.type === 'server_error') {
+          serverError = { status: event.statusCode, message: event.message };
+        } else if (event.type === 'end') {
+          break;
+        }
+      }
+
+      if (!isCurrent()) return;
+      // The agent failing mid-stream hides the overview, products and all, as the guide says.
+      if (serverError) {
+        update({ status: 'error', error: serverError });
+        notify(() => callbacksRef.current?.onError?.(serverError));
+      } else if (sections.length > 0) {
+        update({ status: 'done' });
+      } else {
+        update({ status: 'no-overview' });
+        notify(() => callbacksRef.current?.onNoOverview?.());
+      }
+    }
+
+    run().catch((err: unknown) => {
+      if (!isCurrent() || isAbort(err)) return;
+      // The connection dropped after products were shown: keep them. Unlike a server_error, the
+      // agent didn't say the overview failed.
+      if (sections.length > 0) {
+        update({ status: 'done' });
+        return;
+      }
+      if (
+        err instanceof AgentInsightsRequestError &&
+        NO_OVERVIEW_STATUSES.has(err.status)
+      ) {
+        update({ status: 'no-overview' });
+        notify(() => callbacksRef.current?.onNoOverview?.());
+        return;
+      }
+      const error = toError(err);
+      update({ status: 'error', error });
+      notify(() => callbacksRef.current?.onError?.(error));
+    });
+
+    return () => controller.abort();
+  }, [request]);
+
+  const { key: _stateKey, ...overview } = state;
+  return overview;
 }

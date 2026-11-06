@@ -18,6 +18,43 @@ describe('ProductCard', () => {
     expect(screen.getByText(/\$\s*49\.99/)).toBeTruthy();
   });
 
+  it('shows the label when set', () => {
+    render(<ProductCard product={{ ...product, label: 'Running shoes' }} />);
+    expect(screen.getByText('Running shoes')).toHaveClass(
+      'cio-agent-overview-product-label'
+    );
+    expect(screen.getByRole('link')).toHaveAccessibleName(
+      expect.stringContaining('Running shoes')
+    );
+  });
+
+  it('places the label above the card, outside it', () => {
+    const { container } = render(
+      <ProductCard product={{ ...product, label: 'Running shoes' }} />
+    );
+    const label = screen.getByText('Running shoes');
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    const card = container.querySelector('.cio-product-card');
+    expect(card).not.toContainElement(label);
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(label.nextElementSibling).toBe(card);
+  });
+
+  it('gives the label its full text as a tooltip, since long labels are cut short', () => {
+    render(<ProductCard product={{ ...product, label: 'Running shoes' }} />);
+    expect(screen.getByText('Running shoes')).toHaveAttribute(
+      'title',
+      'Running shoes'
+    );
+  });
+
+  it('renders no label element without one', () => {
+    const { container } = render(<ProductCard product={product} />);
+    // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
+    const label = container.querySelector('.cio-agent-overview-product-label');
+    expect(label).toBeNull();
+  });
+
   it('renders product image with alt text', () => {
     render(<ProductCard product={product} />);
     const img = screen.getByAltText('Test Shoe');

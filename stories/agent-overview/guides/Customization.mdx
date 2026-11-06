@@ -7,9 +7,23 @@ import * as LayoutStories from '../examples/Layout.stories';
 
 ## Styling
 
-Import `@constructor-io/constructorio-ui-agent-components/styles.css`. Without it the component renders unstyled. The JavaScript bundle includes the styles unless you pass `includeCSS: false`.
+Without the [stylesheet](?path=/docs/introduction--docs) the component renders unstyled.
 
-Every rule is scoped to `.cio-agent-overview-root`, and every element has a `cio-agent-overview-` class to style against.
+Every rule is scoped to `.cio-agent-overview-root`, and every element has a `cio-agent-overview-` class to style against. The overview is:
+
+```
+.cio-agent-overview-root
+  .cio-agent-overview-section.cio-agent-overview-card   the AI Overview card
+    .cio-agent-overview-badge                           "AI Overview"
+    .cio-agent-overview-message                         one per paragraph
+    .cio-agent-overview-title                           a single-category overview's row heading
+    .cio-agent-overview-carousel                        the products
+      .cio-agent-overview-product-card                  each product's link
+        .cio-agent-overview-product-label               a multi-category overview's category title
+        .cio-product-card                               the card
+```
+
+Until the first message arrives, the card holds the badge and a `.cio-agent-overview-skeleton-section`; until the first products arrive, the message is followed by `.cio-agent-overview-skeleton-products`. When [nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders), the root is empty.
 
 The component fills its container's width:
 
@@ -21,6 +35,7 @@ The component fills its container's width:
 
 ```jsx
 <CioAgentOverview
+  agenticPromises={…}
   theme={{
     fontFamily: 'Inter, sans-serif',
     primaryColor: '#1a1a1a',
@@ -34,42 +49,32 @@ The component fills its container's width:
 | Property | Variable | Used for |
 |---|---|---|
 | \`fontFamily\` | \`--cio-font-family\` | All text |
-| \`fontSizeXs\` | \`--cio-font-size-xs\` | Badges |
-| \`fontSizeSm\` | \`--cio-font-size-sm\` | Prices |
-| \`fontSizeBase\` | \`--cio-font-size-base\` | Body text |
-| \`fontSizeLg\` | \`--cio-font-size-lg\` | Section titles |
-| \`lineHeight\` | \`--cio-line-height\` | |
-| \`fontWeightNormal\` | \`--cio-font-weight-normal\` | |
-| \`fontWeightMedium\` | \`--cio-font-weight-medium\` | |
-| \`fontWeightSemibold\` | \`--cio-font-weight-semibold\` | |
-| \`fontWeightBold\` | \`--cio-font-weight-bold\` | |
-| \`primaryColor\` | \`--cio-color-primary\` | Primary text |
-| \`secondaryColor\` | \`--cio-color-secondary\` | Secondary text |
-| \`mutedColor\` | \`--cio-color-muted\` | Descriptions |
-| \`subtleColor\` | \`--cio-color-subtle\` | Light accents |
-| \`productNameColor\` | \`--cio-color-product-name\` | Product names |
-| \`borderColor\` | \`--cio-color-border\` | Cards and sections |
-| \`background\` | \`--cio-color-background\` | Root container |
-| \`backgroundMuted\` | \`--cio-color-background-muted\` | Sections |
-| \`hoverAccentColor\` | \`--cio-color-hover-accent\` | Hover states |
-| \`arrowSize\` | \`--cio-arrow-size\` | Carousel arrows |
-| \`arrowBorderRadius\` | \`--cio-arrow-border-radius\` | |
-| \`arrowBorderColor\` | \`--cio-arrow-border-color\` | |
-| \`arrowBorderColorHover\` | \`--cio-arrow-border-color-hover\` | |
-| \`arrowColor\` | \`--cio-arrow-color\` | Arrow icon |
-| \`arrowShadow\` | \`--cio-arrow-shadow\` | |
-| \`arrowShadowHover\` | \`--cio-arrow-shadow-hover\` | |
+| \`fontSizeXs\` | \`--cio-font-size-xs\` | The badge |
+| \`fontSizeSm\` | \`--cio-font-size-sm\` | The "Thinking" line while it loads |
+| \`fontSizeBase\` | \`--cio-font-size-base\` | The overview copy, product names and labels |
+| \`fontSizeLg\` | \`--cio-font-size-lg\` | A single-category overview's row heading |
+| \`lineHeight\` | \`--cio-line-height\` | All text |
+| \`fontWeightNormal\` | \`--cio-font-weight-normal\` | The overview copy |
+| \`fontWeightSemibold\` | \`--cio-font-weight-semibold\` | The badge, row heading and labels |
+| \`primaryColor\` | \`--cio-color-primary\` | Text |
+| \`subtleColor\` | \`--cio-color-subtle\` | The "Thinking" line |
+| \`borderColor\` | \`--cio-color-border\` | The card's border |
+| \`background\` | \`--cio-color-background\` | The badge |
+| \`backgroundMuted\` | \`--cio-color-background-muted\` | The card |
 | \`spacingXs\` … \`spacing2xl\` | \`--cio-spacing-xs\` … \`--cio-spacing-2xl\` | Xs, Sm, Md, Lg, Xl, 2xl |
 `}
 </Markdown>
 
-Values containing `<`, `>` or `javascript:` are stripped.
+`CioAgentOverviewTheme` also has `secondaryColor`, `mutedColor`, `productNameColor`, `hoverAccentColor`, `fontWeightMedium`, `fontWeightBold` and the `arrow…` properties. AI Overview doesn't use them; product cards and carousel arrows take their styles from Constructor's UI components.
+
+`<` and `>` are stripped from values, and `javascript:`, `vbscript:` and `data:` are blocked.
 
 ## Translations
 
 ```jsx
 <CioAgentOverview
-  translations={{ 'CioAgentOverview.section.viewMore': 'Ver todo' }}
+  agenticPromises={…}
+  translations={{ 'CioAgentOverview.badge': 'Resumen de IA' }}
 />
 ```
 
@@ -77,16 +82,14 @@ Values containing `<`, `>` or `javascript:` are stripped.
   {`
 | Key | Default |
 |---|---|
-| \`CioAgentOverview.section.aiBadge\` | Generated with AI |
-| \`CioAgentOverview.categories.viewSuggestions\` | View suggestions |
-| \`CioAgentOverview.section.viewMore\` | View More |
+| \`CioAgentOverview.badge\` | The promise's \`pod.display_name\` ("AI Overview") |
 | \`CioAgentOverview.skeleton.thinking\` | Thinking |
-| \`CioAgentOverview.error.message\` | Something went wrong. Please try again. |
 | \`CioAgentOverview.carousel.previous\` | Show previous items |
 | \`CioAgentOverview.carousel.next\` | Show next items |
 | \`CioAgentOverview.carousel.label\` | Products |
-| \`CioAgentOverview.categories.carouselLabel\` | Categories |
+| \`CioAgentOverview.status.loading\` | Loading AI Overview |
+| \`CioAgentOverview.status.done\` | AI Overview loaded |
 `}
 </Markdown>
 
-An empty string hides a visible string. The last four are read only by screen readers, so an empty string falls back to the default. Content from the API, such as titles and product names, isn't translated.
+An empty string hides a visible string. The last five are read only by screen readers, so an empty string falls back to the default. Content from the API, such as titles and product names, isn't translated.

@@ -1,0 +1,23 @@
+import { Meta, Markdown } from '@storybook/addon-docs/blocks';
+
+<Meta title="Agent Overview/Components & Utilities/Product Components" />
+
+# Product Components
+
+Product components for use with [useAgentOverview](?path=/docs/agent-overview-components-utilities-useagentoverview--docs). Render them inside a `cio-agent-overview-root` element to get the styles.
+
+```jsx
+import {
+  ProductCarousel,
+  ProductCard,
+} from '@constructor-io/constructorio-ui-agent-components';
+```
+
+<Markdown>
+  {`
+| Component | Props |
+|---|---|
+| \`ProductCarousel\` | \`products\`, \`label?\` (accessible name), \`translations?\`, \`getProductUrl?\`, \`onProductClick?\` |
+| \`ProductCard\` | \`product\`, \`href?\` (default \`product.url\`), \`onClick?(event)\`. Shows \`product.label\` above the card when set |
+`}
+</Markdown>

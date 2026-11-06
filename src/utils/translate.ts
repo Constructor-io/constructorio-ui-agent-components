@@ -1,15 +1,13 @@
 import type { Translations } from '../types';
 
 const defaultTranslations: Translations = {
-  'CioAgentOverview.section.aiBadge': 'Generated with AI',
-  'CioAgentOverview.categories.viewSuggestions': 'View suggestions',
-  'CioAgentOverview.section.viewMore': 'View More',
+  'CioAgentOverview.badge': 'AI Overview',
   'CioAgentOverview.skeleton.thinking': 'Thinking',
   'CioAgentOverview.carousel.previous': 'Show previous items',
   'CioAgentOverview.carousel.next': 'Show next items',
   'CioAgentOverview.carousel.label': 'Products',
-  'CioAgentOverview.categories.carouselLabel': 'Categories',
-  'CioAgentOverview.error.message': 'Something went wrong. Please try again.',
+  'CioAgentOverview.status.loading': 'Loading AI Overview',
+  'CioAgentOverview.status.done': 'AI Overview loaded',
 };
 
 /**

@@ -6,31 +6,33 @@ import { Meta, Markdown } from '@storybook/addon-docs/blocks';
 
 ```jsx
 <CioAgentOverview
-  apiKey="YOUR_API_KEY"
-  intent={query}
-  domains={domains}
+  agenticPromises={searchResponse.response.agentic_promises}
   callbacks={{
-    onCategoryClick: (category) =>
-      myAnalytics.track('category_click', { title: category.title }),
     onProductClick: (event, product, section) =>
       myAnalytics.track('product_click', {
         name: product.itemName,
-        section: section.title,
+        category: section.title,
       }),
-    getProductUrl: (product) => `${product.url}?ref=agent-overview`,
-    getViewMoreUrl: (section) =>
-      `/search?q=${encodeURIComponent(section.title)}`,
+    getProductUrl: (product) => `${product.url}?ref=ai-overview`,
+    onNoOverview: () => setOverviewSlotVisible(false),
+    onError: (error) => myLogger.warn('AI Overview failed', error),
   }}
 />
 ```
 
 <Markdown>
   {`
-| Callback | Called |
-|---|---|
-| \`onCategoryClick(category)\` | When a category card is clicked, before the products show. Not called for "View suggestions" |
-| \`onProductClick(event, product, section)\` | When a product card is clicked. The card is a link: call \`event.preventDefault()\` to navigate yourself |
-| \`getProductUrl(product)\` | For each product card's link. Default \`product.url\` |
-| \`getViewMoreUrl(section)\` | For each section. Its "View more" link opens in a new tab; without this callback there is no link |
+| Callback | Signature | Fires when |
+|---|---|---|
+| \`onProductClick\` | \`(event, product, section)\` | A product card is clicked, with the product set it came from. The card is a link: call \`event.preventDefault()\` to navigate yourself |
+| \`getProductUrl\` | \`(product) => string\` | Each product card renders its link. Default \`product.url\` |
+| \`onNoOverview\` | \`()\` | Search promised an overview and the agent turned it down, or the stream ended with no products to show. Not for a search without a promise, which makes no request |
+| \`onError\` | \`(error)\` | The overview fails, with \`{ status, code, message }\`. \`status\` is 0 when there was no response |
 `}
 </Markdown>
+
+In both of the last two cases nothing renders. See [when nothing renders](?path=/docs/faq--docs#agent-overview-nothing-renders).
+
+## Tracking
+
+Agent Overview doesn't send Constructor behavioral events yet. To measure it now, send your own from these callbacks.

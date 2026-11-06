@@ -10,56 +10,34 @@ import * as HeadlessStories from '../examples/Headless.stories';
 ```jsx
 import {
   useAgentOverview,
-  RecommendationSection,
+  ProductCarousel,
 } from '@constructor-io/constructorio-ui-agent-components';
 import '@constructor-io/constructorio-ui-agent-components/styles.css';
 
-const domains = {
-  suggestions: 'YOUR_SUGGESTIONS_DOMAIN',
-  results: 'YOUR_RESULTS_DOMAIN',
-};
+function MyAgentOverview({ searchResponse }) {
+  const { status, message, sections, displayName } = useAgentOverview({
+    agenticPromises: searchResponse.response.agentic_promises,
+  });
 
-function MyAgentOverview({ intent }) {
-  const {
-    phase,
-    categories,
-    categoryDescription,
-    sections,
-    selectCategory,
-    isLoading,
-    error,
-  } = useAgentOverview({ apiKey: 'YOUR_API_KEY', intent, domains });
-
-  if (error) return <p>{error}</p>;
-  if (isLoading) return <p>Loading...</p>;
-
-  if (phase === 'categories') {
-    return (
-      <div>
-        <p>{categoryDescription}</p>
-        {categories.map((category) => (
-          <button
-            key={category.title}
-            type="button"
-            onClick={() => selectCategory(category)}
-          >
-            {category.title}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  if (status === 'loading') return <p>Loading…</p>;
+  if (status !== 'streaming' && status !== 'done') return null;
 
   return (
     <div className="cio-agent-overview-root">
-      {sections.map((section) => (
-        <RecommendationSection key={section.title} section={section} />
-      ))}
+      <span>{displayName}</span>
+      <p>{message}</p>
+      <ProductCarousel
+        products={sections.flatMap((section) => section.products)}
+      />
     </div>
   );
 }
 ```
 
-The hook ignores `theme`, `callbacks` and `translations`; pass them to the [components](?path=/docs/agent-overview-components-utilities-section-components--docs) you render. Those components are styled only inside a `cio-agent-overview-root` element.
+The hook uses only some props; see [useAgentOverview](?path=/docs/agent-overview-components-utilities-useagentoverview--docs). For the rest:
+
+- **Components:** render the [product components](?path=/docs/agent-overview-components-utilities-product-components--docs) inside a `cio-agent-overview-root` element to get their styles, and pass them `translations`.
+- **Theme:** the components take no `theme`. Set the `--cio-*` variables from the [theming table](?path=/docs/agent-overview-customization--docs#theming) on that root element's `style` instead.
+- **Clicks:** `ProductCarousel`'s `onProductClick` is `(event, product)`, without the section. Find the product's section in `sections` if you need it.
 
 <Canvas of={HeadlessStories.Default} />

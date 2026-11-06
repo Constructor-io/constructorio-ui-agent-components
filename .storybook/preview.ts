@@ -18,7 +18,7 @@ const preview: Preview = {
             [
               'CioAgentOverview',
               'useAgentOverview',
-              'Section Components',
+              'Product Components',
               'JavaScript Bundle',
             ],
           ],

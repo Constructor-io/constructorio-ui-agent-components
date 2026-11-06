@@ -4,4 +4,23 @@
   text-decoration: none;
   color: inherit;
   cursor: pointer;
+  height: 100%;
+}
+
+/* Fill the carousel slot, so every card in a row is as tall as the tallest. */
+.cio-agent-overview-product-card > .cio-product-card {
+  flex: 1;
+}
+
+.cio-agent-overview-product-label {
+  margin-bottom: var(--cio-spacing-md);
+  font-family: var(--cio-font-family);
+  font-size: var(--cio-font-size-base);
+  font-weight: var(--cio-font-weight-semibold);
+  color: var(--cio-color-primary);
+  line-height: var(--cio-line-height);
+  /* One line, so the cards in a row stay level. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

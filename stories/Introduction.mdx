@@ -1,57 +1,40 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 import Flow from './assets/flow.svg';
-import Repo from './assets/repo.svg';
-import Plugin from './assets/plugin.svg';
 import './assets/storybook-styles.css';
 
 <Meta title="Introduction" />
 
 # Constructor Agent Components UI
 
-React components for Constructor's agentic experiences. **Agent Overview** streams AI-generated category suggestions for a shopping intent, then product recommendation sections.
+React components for Constructor's agentic experiences, in one package.
 
 ```bash
 npm install @constructor-io/constructorio-ui-agent-components
 ```
 
-## How these docs are organised
+## Components
 
-- Each component has its own section in the sidebar, such as **Agent Overview**.
-- In a component's section, the guides show how to do something; start with its [Integration Guide](./?path=/docs/agent-overview-integration-guide--docs). **Components & Utilities** is the reference for what it exports.
-- **FAQ** covers setup problems for every component.
+Each component has its own section: an Integration Guide to start with, guides for everything else, and **Components & Utilities**, the reference for its exports.
 
 <div className="link-list">
-  <a className="link-item" href="./?path=/docs/agent-overview-integration-guide--docs">
-    <img src={Flow} alt="" />
-    <span>
-      <strong>Integration Guide</strong>
-      Step by step, start here
-    </span>
-  </a>
-  <a className="link-item" href="./?path=/docs/agent-overview-customization--docs">
-    <img src={Plugin} alt="" />
-    <span>
-      <strong>Customization</strong>
-      Styles, theme, translations
-    </span>
-  </a>
-  <a className="link-item" href="./?path=/docs/agent-overview-custom-ui--docs">
-    <img src={Plugin} alt="" />
-    <span>
-      <strong>Custom UI</strong>
-      Your own rendering with the hook
-    </span>
-  </a>
   <a
     className="link-item"
-    href="./?path=/docs/agent-overview-components-utilities-cioagentoverview--docs"
+    href="./?path=/docs/agent-overview-integration-guide--docs"
   >
-    <img src={Repo} alt="" />
+    <img src={Flow} alt="" />
     <span>
-      <strong>Components & Utilities</strong>
-      Every prop and export
+      <strong>Agent Overview</strong>
+      AI Overview above your search results: a short AI-written summary and the
+      products picked for the search
     </span>
   </a>
 </div>
+
+## Every component
+
+- Import the styles once: `@constructor-io/constructorio-ui-agent-components/styles.css`.
+- Needs Node.js 20 or later to build, and React and React DOM 16.14 or later (for the JSX runtime).
+- Peer dependencies: `@constructor-io/constructorio-ui-components` ^1.3.0 and `@constructor-io/constructorio-client-javascript` ^2.76.0.
+- Setup problems: see the [FAQ](./?path=/docs/faq--docs).
 
 Stuck on a use case? Contact your Constructor Integration Engineer.
