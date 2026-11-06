@@ -110,6 +110,8 @@ export type Translations = {
   'CioAgentOverview.carousel.previous'?: string;
   'CioAgentOverview.carousel.next'?: string;
   'CioAgentOverview.carousel.label'?: string;
+  'CioAgentOverview.status.loading'?: string;
+  'CioAgentOverview.status.done'?: string;
 };
 
 /** One set of products in an overview, as one `item_results` event streamed it. */

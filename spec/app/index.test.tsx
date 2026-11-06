@@ -46,6 +46,12 @@ function root(container: HTMLElement): HTMLElement {
   return find(container, '.cio-agent-overview-root') as HTMLElement;
 }
 
+// Nothing visible: no card, and the always-mounted status message is silent.
+function expectNothingShown(container: HTMLElement) {
+  expect(find(container, '.cio-agent-overview-card')).toBeNull();
+  expect(screen.getByRole('status')).toBeEmptyDOMElement();
+}
+
 describe('CioAgentOverview', () => {
   afterEach(() => {
     mockedStream.mockReset();
@@ -183,7 +189,7 @@ describe('CioAgentOverview', () => {
     const { container } = renderOverview({
       agenticPromises: 'oops' as never,
     });
-    expect(root(container)).toBeEmptyDOMElement();
+    expectNothingShown(container);
     expect(mockedStream).not.toHaveBeenCalled();
   });
 
@@ -262,7 +268,7 @@ describe('CioAgentOverview', () => {
     const { container } = renderOverview({ callbacks: { onNoOverview } });
 
     await waitFor(() => expect(onNoOverview).toHaveBeenCalled());
-    expect(root(container)).toBeEmptyDOMElement();
+    expectNothingShown(container);
   });
 
   it('should hide products already shown when a server_error follows', async () => {
@@ -284,7 +290,10 @@ describe('CioAgentOverview', () => {
       });
       controlled.push(end);
     });
-    await waitFor(() => expect(root(container)).toBeEmptyDOMElement());
+    await waitFor(() =>
+      expect(find(container, '.cio-agent-overview-card')).toBeNull()
+    );
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('should render nothing for an error', async () => {
@@ -297,12 +306,12 @@ describe('CioAgentOverview', () => {
     const { container } = renderOverview({ callbacks: { onError } });
 
     await waitFor(() => expect(onError).toHaveBeenCalled());
-    expect(root(container)).toBeEmptyDOMElement();
+    expectNothingShown(container);
   });
 
   it('should render nothing, and make no request, for a search without a promise', () => {
     const { container } = renderOverview({ agenticPromises: [] });
-    expect(root(container)).toBeEmptyDOMElement();
+    expectNothingShown(container);
     expect(mockedStream).not.toHaveBeenCalled();
   });
 
