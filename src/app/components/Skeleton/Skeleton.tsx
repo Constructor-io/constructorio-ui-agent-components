@@ -28,7 +28,8 @@ function SkeletonSection({
   translations?: Translations;
 }) {
   return (
-    <div className="cio-agent-overview-skeleton-section">
+    // Placeholders are decorative; the overview's status message announces loading.
+    <div className="cio-agent-overview-skeleton-section" aria-hidden="true">
       <div className="cio-agent-overview-skeleton-badge">
         <SparkleSVG />
         <span>

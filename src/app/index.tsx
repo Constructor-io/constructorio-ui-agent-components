@@ -1,7 +1,9 @@
 import type {
+  AgentOverviewStatus,
   IAgentOverviewProps,
   IAgentOverviewSection,
   IProduct,
+  Translations,
 } from '../types';
 import buildThemeStyles from '../utils/theme';
 import translate, { translateLabel } from '../utils/translate';
@@ -12,6 +14,23 @@ import useAgentOverview from './hooks/useAgentOverview';
 
 import '../styles.css';
 import './index.css';
+
+/**
+ * What the status message announces. It sits outside the busy card, since aria-busy silences
+ * announcements from its own region.
+ */
+function describeStatus(
+  status: AgentOverviewStatus,
+  translations?: Translations
+): string {
+  if (status === 'loading' || status === 'streaming') {
+    return translateLabel('CioAgentOverview.status.loading', translations);
+  }
+  if (status === 'done') {
+    return translateLabel('CioAgentOverview.status.done', translations);
+  }
+  return '';
+}
 
 /**
  * Pre-built AI Overview: streams a short AI-written summary and the products picked for a
@@ -50,12 +69,16 @@ export default function CioAgentOverview(props: IAgentOverviewProps) {
     sections[0] && !sections[0].products.some((product) => product.label)
       ? sections[0].title
       : '';
+  const statusMessage = describeStatus(status, translations);
 
   return (
     <div
       className="cio-agent-overview-root"
       style={buildThemeStyles(props.theme)}
     >
+      <div role="status" className="cio-agent-overview-visually-hidden">
+        {statusMessage}
+      </div>
       {isOpen && (
         <div
           className="cio-agent-overview-section cio-agent-overview-card"
